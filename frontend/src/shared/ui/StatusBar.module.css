@@ -1,0 +1,33 @@
+.bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s-3);
+  padding: var(--s-6) var(--s-4);
+  color: var(--fg-mute);
+  font-size: var(--fs-12);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.dots {
+  display: inline-flex;
+  gap: var(--s-1);
+}
+
+.dots span {
+  width: 6px;
+  height: 6px;
+  background: var(--fg-mute);
+  animation: blink 1.2s steps(2, end) infinite;
+}
+.dots span:nth-child(2) { animation-delay: 0.15s; }
+.dots span:nth-child(3) { animation-delay: 0.3s; }
+
+@keyframes blink {
+  50% { background: transparent; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dots span { animation: none; opacity: 0.4; }
+}

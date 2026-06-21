@@ -1,0 +1,31 @@
+.shell {
+  display: grid;
+  grid-template-rows: var(--header-h) 1fr;
+  min-height: 100%;
+  background: var(--bg);
+}
+
+.main {
+  width: 100%;
+  max-width: var(--max-w);
+  margin: 0 auto;
+  padding: var(--s-6) var(--s-4) var(--s-12);
+}
+
+.footer {
+  border-top: 1px solid var(--line);
+  padding: var(--s-4);
+  text-align: center;
+  font-size: var(--fs-12);
+  color: var(--fg-mute);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+/* Mobile: leave room for the fixed tab bar so the last feed item isn't
+   hidden under it. */
+@media (max-width: 720px) {
+  .main {
+    padding-bottom: calc(var(--tabbar-h) + var(--s-8));
+  }
+}

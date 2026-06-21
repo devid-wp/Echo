@@ -1,0 +1,93 @@
+.bar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: var(--s-4);
+  height: var(--header-h);
+  padding: 0 var(--s-4);
+  background: var(--bg);
+  border-bottom: 1px solid var(--line);
+}
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-2);
+  color: var(--fg);
+  font-family: var(--font-mono);
+  font-size: var(--fs-14);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.brand:hover {
+  text-decoration: none;
+  color: var(--accent);
+}
+
+.brandGlyph {
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.nav {
+  display: flex;
+  align-items: center;
+  gap: var(--s-4);
+  justify-content: center;
+  font-size: var(--fs-13);
+  text-transform: lowercase;
+  color: var(--fg-dim);
+}
+
+.nav a {
+  color: inherit;
+  position: relative;
+  padding: var(--s-1) var(--s-2);
+}
+
+.nav a:hover,
+.nav a:focus-visible {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.nav a[aria-current='page'] {
+  color: var(--accent);
+}
+
+.nav a[aria-current='page']::before {
+  content: '> ';
+  color: var(--accent);
+}
+
+.right {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  justify-self: end;
+}
+
+.session {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-2);
+  color: var(--fg-dim);
+  font-size: var(--fs-12);
+  text-transform: lowercase;
+}
+
+.handle {
+  color: var(--fg);
+}
+
+/* hide on mobile — TabBar takes over */
+@media (max-width: 720px) {
+  .nav,
+  .session {
+    display: none;
+  }
+}

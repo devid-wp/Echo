@@ -1,5 +1,5 @@
 from django.db import models
-from django.contrib.auth.models import AbstractUser
+from django.contrib.auth.models import AbstractUser, AbstractBaseUser
 from django.conf import settings
 
 # Первая моделььььь
@@ -33,3 +33,4 @@ class UserDevice(models.Model):
     
     def __str__(self):
         return f"{self.user.username} - {self.device_id[:10]}"
+    

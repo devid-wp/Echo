@@ -1,0 +1,68 @@
+.post {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+}
+
+.head {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: var(--s-3);
+  color: var(--fg-dim);
+  font-size: var(--fs-12);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.handle {
+  color: var(--fg);
+}
+
+.handle a {
+  color: inherit;
+}
+
+.handle a:hover {
+  color: var(--accent);
+}
+
+.ts {
+  color: var(--fg-mute);
+}
+
+.body {
+  font-size: var(--fs-14);
+  line-height: var(--lh-loose);
+  white-space: pre-wrap;
+  word-break: break-word;
+  color: var(--fg);
+}
+
+.foot {
+  display: flex;
+  align-items: center;
+  gap: var(--s-4);
+  color: var(--fg-mute);
+  font-size: var(--fs-12);
+  border-top: 1px solid var(--line);
+  padding-top: var(--s-3);
+}
+
+.action {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-1);
+  background: transparent;
+  color: inherit;
+  padding: 0;
+}
+
+.action:hover,
+.action:focus-visible {
+  color: var(--accent);
+}
+
+.action[data-active='true'] {
+  color: var(--accent);
+}
