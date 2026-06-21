@@ -1,0 +1,6 @@
+.venv
+.vscode
+*.sqlite
+*.db
+*.db3
+*.txt
