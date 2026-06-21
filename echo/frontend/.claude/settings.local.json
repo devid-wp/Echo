@@ -1,0 +1,25 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//c/Users/galas/OneDrive/Desktop/Echo/**)",
+      "Bash(dir /B)",
+      "PowerShell(cd \"C:\\\\Users\\\\galas\\\\OneDrive\\\\Desktop\\\\Echo\\\\echo\\\\frontend\"; npx eslint src/features/messenger src/features/messenger/index.ts src/widgets/tabbar/TabBar.tsx src/shared/config/env.ts src/app/App.tsx 2>&1; \"exit=$LASTEXITCODE\")",
+      "PowerShell(npm run *)",
+      "Bash(Select-String -Pattern \"playwright|puppeteer|chrome\")",
+      "Bash(npm ls *)",
+      "Bash(cmd /c \"\\\\\"C:\\\\Program Files \\(x86\\)\\\\Microsoft\\\\Edge\\\\Application\\\\msedge.exe\\\\\" --version > edge_version.txt 2>&1\")",
+      "Bash(rm edge_version.txt)",
+      "PowerShell(& \"C:\\\\Program Files \\(x86\\)\\\\Microsoft\\\\Edge\\\\Application\\\\msedge.exe\" --version 2>&1)",
+      "PowerShell(Out-File *)",
+      "Bash(node -e ' *)",
+      "PowerShell(Get-Process *)",
+      "PowerShell(Test-NetConnection *)",
+      "Bash(node *)",
+      "Bash(cp C:/Users/galas/AppData/Local/Temp/messenger-1440.png C:/Users/galas/OneDrive/Desktop/Echo/echo/frontend/messenger-1440.png)",
+      "Bash(cp C:/Users/galas/AppData/Local/Temp/messenger-1920.png C:/Users/galas/OneDrive/Desktop/Echo/echo/frontend/messenger-1920.png)",
+      "Bash(cp C:/Users/galas/AppData/Local/Temp/messenger-900.png C:/Users/galas/OneDrive/Desktop/Echo/echo/frontend/messenger-900.png)",
+      "Bash(cp C:/Users/galas/AppData/Local/Temp/messenger-390.png C:/Users/galas/OneDrive/Desktop/Echo/echo/frontend/messenger-390.png)",
+      "Bash(xxd)"
+    ]
+  }
+}
