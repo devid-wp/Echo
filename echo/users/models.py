@@ -16,6 +16,23 @@ class User(AbstractUser):
 
     def __str__(self):
         return self.username
+    
+    @property
+    def age(self):
+        if self.birth_date:
+            from datetime import date
+            today = date.today()
+            return today.year - self.birth_date.year - (
+                (today.month, today.day) < (self.birth_date.month, self.birth_date.day)
+            )
+        return None
+    
+    @property
+    def short_bio(self):
+        if self.bio:
+            return self.bio[:50] + '...' if len(self.bio) > 50 else self.bio
+        return ""
+
 
 # Если у пользователя более одного устройства, для безопасности
 # ОТСЫЛОЧКА НА DEVICE_FRIEND ! ! ! ! ! ! ! ! ! ! ! ! !
