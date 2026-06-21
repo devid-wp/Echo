@@ -1,0 +1,62 @@
+.oauth {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+}
+
+.divider {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: var(--s-3);
+  color: var(--fg-mute);
+  font-size: var(--fs-12);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.divider::before,
+.divider::after {
+  content: '';
+  height: 1px;
+  background: var(--line);
+}
+
+.provider {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: var(--s-3);
+  height: 38px;
+  padding: 0 var(--s-3);
+  border: 1px solid var(--line);
+  background: var(--bg-soft);
+  color: var(--fg);
+  font-family: var(--font-mono);
+  font-size: var(--fs-13);
+  text-align: left;
+  transition: background var(--t-fast) var(--ease),
+              color var(--t-fast) var(--ease);
+}
+
+.provider:hover:not(:disabled) {
+  background: var(--fg);
+  color: var(--bg);
+}
+
+.provider:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.glyph {
+  color: var(--fg-mute);
+}
+.provider:hover .glyph { color: var(--bg); }
+
+.stub {
+  font-size: var(--fs-12);
+  color: var(--warn);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}

@@ -1,0 +1,275 @@
+/* =============================================================
+   Echo — design tokens (terminal minimalism)
+   ============================================================= */
+
+:root {
+  /* Palette. The whole app lives in ~6 colors:
+     near-black with a green undertone, paper for inverted blocks,
+     three accents (mint, amber, crimson), and three dim greys. */
+  --bg:        #0b0d0c;        /* page background — CRT phosphor black */
+  --bg-soft:   #101413;        /* raised surface */
+  --bg-sunk:   #080a09;        /* pressed / input */
+  --paper:     #e8efe9;        /* inverted block (high contrast) */
+  --paper-ink: #0b0d0c;
+
+  --line:      #1d2421;        /* hairline borders */
+  --line-soft: #161a18;
+
+  --fg:        #d6e2d8;        /* primary text — phosphor green-tinted */
+  --fg-dim:    #8a978d;        /* secondary text */
+  --fg-mute:   #586159;        /* tertiary / placeholders */
+  --fg-faint:  #2c3530;        /* decorative hairlines */
+
+  --accent:    #7ee787;        /* terminal green — links, focus */
+  --accent-2:  #56d364;        /* saturated terminal green */
+  --warn:      #e3b341;        /* amber — warnings, in-progress */
+  --danger:    #ff6b6b;        /* crimson — destructive */
+
+  /* Typography */
+  --font-mono: 'JetBrains Mono', 'Berkeley Mono', 'Cascadia Mono',
+               ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
+  --font-sans: var(--font-mono); /* we deliberately use mono everywhere */
+
+  --fs-12: 12px;
+  --fs-13: 13px;
+  --fs-14: 14px;
+  --fs-15: 15px;
+  --fs-18: 18px;
+  --fs-22: 22px;
+  --fs-28: 28px;
+
+  --lh-tight: 1.2;
+  --lh-base:  1.5;
+  --lh-loose: 1.7;
+
+  /* Spacing — 4px base, half-step grid */
+  --s-0:  0;
+  --s-1:  4px;
+  --s-2:  8px;
+  --s-3:  12px;
+  --s-4:  16px;
+  --s-5:  20px;
+  --s-6:  24px;
+  --s-8:  32px;
+  --s-10: 40px;
+  --s-12: 48px;
+
+  /* Layout */
+  --radius:    0;             /* sharp corners everywhere */
+  --radius-2:  2px;           /* one concession: tiny rounding for focus rings */
+  --max-w:     720px;
+  --header-h:  52px;
+  --tabbar-h:  60px;
+
+  /* Motion — short, mechanical, no spring */
+  --t-fast: 80ms;
+  --t-base: 140ms;
+  --ease:   steps(4, end);
+}
+
+/* =============================================================
+   Reset
+   ============================================================= */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  font-family: var(--font-sans);
+  font-size: var(--fs-14);
+  line-height: var(--lh-base);
+  color: var(--fg);
+  background: var(--bg);
+  /* tiny grain via a single gradient line — subtle CRT scan feel */
+  background-image:
+    repeating-linear-gradient(
+      0deg,
+      transparent 0 2px,
+      rgba(126, 231, 135, 0.012) 2px 3px
+    );
+  background-attachment: fixed;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+  color: inherit;
+  background: transparent;
+  border: 0;
+  outline: 0;
+}
+
+button {
+  cursor: pointer;
+  user-select: none;
+}
+
+a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+a:hover,
+a:focus-visible {
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+}
+
+img,
+svg {
+  display: block;
+  max-width: 100%;
+}
+
+ul,
+ol {
+  list-style: none;
+}
+
+::selection {
+  background: var(--accent);
+  color: var(--bg);
+}
+
+/* Focus ring — rectangle, no glow */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: var(--radius-2);
+}
+
+/* =============================================================
+   Utility primitives
+   ============================================================= */
+
+.container {
+  width: 100%;
+  max-width: var(--max-w);
+  margin: 0 auto;
+  padding-inline: var(--s-4);
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Section divider — terminal-style horizontal rule with corner glyphs */
+.rule {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: var(--s-3);
+  color: var(--fg-mute);
+  font-size: var(--fs-12);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.rule::before,
+.rule::after {
+  content: '';
+  height: 1px;
+  background: var(--line);
+}
+
+.rule[data-rule]::before { content: '+'; background: none; }
+.rule[data-rule]::after  { content: '-'; background: none; }
+
+/* Hairline frames with ASCII corners */
+.frame {
+  position: relative;
+  border: 1px solid var(--line);
+  padding: var(--s-4);
+}
+
+.frame::before,
+.frame::after {
+  content: '';
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  border: 1px solid var(--fg-mute);
+}
+
+.frame::before {
+  top: -4px;
+  left: -4px;
+  border-right: 0;
+  border-bottom: 0;
+}
+
+.frame::after {
+  bottom: -4px;
+  right: -4px;
+  border-left: 0;
+  border-top: 0;
+}
+
+/* Inline status pill, looks like a log tag */
+.tag {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-1);
+  font-size: var(--fs-12);
+  letter-spacing: 0.04em;
+  color: var(--accent);
+  text-transform: uppercase;
+}
+
+.tag::before {
+  content: '[';
+  color: var(--fg-mute);
+}
+.tag::after {
+  content: ']';
+  color: var(--fg-mute);
+}
+
+/* Cursor block for the page hero / loading state */
+.caret {
+  display: inline-block;
+  width: 0.6em;
+  height: 1em;
+  background: var(--accent);
+  margin-left: 2px;
+  vertical-align: text-bottom;
+  animation: blink 1.1s steps(2, end) infinite;
+}
+
+@keyframes blink {
+  to { visibility: hidden; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .caret { animation: none; }
+}
