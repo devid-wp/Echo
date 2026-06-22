@@ -5,6 +5,11 @@ from users.models import User
 
 # Сериализатор для сообщений
 class MessageSerializer(serializers.ModelSerializer):
+
+    sender_data = UserSerializer(
+        source='sender',
+        read_only=True
+    )
     # Имя отправителя
     sender_username = serializers.CharField(
         source='sender.username',
@@ -12,7 +17,7 @@ class MessageSerializer(serializers.ModelSerializer):
     )
     
     # Аватар отправителя
-    # sender_avatar = serializers.CharField(source='sender.avatar', read_only=True)
+    sender_avatar = serializers.SerializerMethodField()
     
     sender_data = UserSerializer(
         source='sender',
@@ -28,6 +33,8 @@ class MessageSerializer(serializers.ModelSerializer):
             'sender_username',  # Имя отправителя (доп. поле)
             'sender_data',   # Полные данные отправителя (доп. поле)
             'text',
+            'sender_data',
+            'sender_avatar',
             'is_encrypted',
             'is_read',
             'read_at',
@@ -44,7 +51,16 @@ class MessageSerializer(serializers.ModelSerializer):
             'created_at', 
             'updated_at'
         ]
-    
+
+    def get_sender_avatar(self, obj):
+        if obj.sender and obj.sender.avatar:
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(obj.sender.avatar.url)
+            return obj.sender.avatar.url
+        name = obj.sender.first_name if obj.sender else ''
+        return f"https://ui-avatars.com/api/?name={name}&background=random&size=64"
+
     # Валидация сообщения
     def validate_text(self, value):
         if not value or not value.strip():

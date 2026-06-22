@@ -1,22 +1,39 @@
-"""
-URL configuration for echo project.
-
-The `urlpatterns` list routes URLs to views. For more information please see:
-    https://docs.djangoproject.com/en/6.0/topics/http/urls/
-Examples:
-Function views
-    1. Add an import:  from my_app import views
-    2. Add a URL to urlpatterns:  path('', views.home, name='home')
-Class-based views
-    1. Add an import:  from other_app.views import Home
-    2. Add a URL to urlpatterns:  path('', Home.as_view(), name='home')
-Including another URLconf
-    1. Import the include() function: from django.urls import include, path
-    2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
-"""
 from django.contrib import admin
-from django.urls import path
+from django.urls import path, include
+from django.views.generic import RedirectView
+from django.http import JsonResponse
+
+def home_view(request):
+    """Корневой URL с информацией об API"""
+    return JsonResponse({
+        'status': 'ok',
+        'message': 'Echo API is running!',
+        'endpoints': {
+            'auth': {
+                'register': 'POST /api/auth/register',
+                'login': 'POST /api/auth/login',
+                'logout': 'POST /api/auth/logout',
+            },
+            'users': {
+                'me': 'GET /api/users/me',
+                'user_detail': 'GET /api/users/<id>',
+            },
+            'chats': {
+                'list': 'GET /api/chats',
+                'create': 'POST /api/chats',
+                'messages': 'GET /api/chats/<id>/messages',
+                'send_message': 'POST /api/chats/<id>/messages',
+            },
+            'admin': '/admin/'
+        },
+        'documentation': 'See README.md for more details'
+    })
+
 
 urlpatterns = [
+    path('', home_view, name='home'),
     path('admin/', admin.site.urls),
+    path('api/', include('chats.urls')),
+    path('api/', include('users.urls')),
 ]
+

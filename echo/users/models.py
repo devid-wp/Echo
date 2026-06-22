@@ -10,6 +10,14 @@ class User(AbstractUser):
     last_seen = models.DateTimeField(auto_now=True, verbose_name="Последнее посещение")
     online_status = models.BooleanField(default=False, verbose_name="В сети?")
 
+    avatar = models.ImageField(
+        upload_to='avatars/', 
+        blank=True, 
+        null=True,
+        verbose_name='Аватар'
+    )
+
+
     # !!! БЕЗОПАСНОСТЬ !!!
     public_key = models.TextField(blank=True, null=True, verbose_name="Публичный ключ RSA/ECC")
     # !!! БЕЗОПАСНОСТЬ !!!

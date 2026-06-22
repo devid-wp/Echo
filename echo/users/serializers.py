@@ -19,6 +19,10 @@ class UserSerializer(serializers.ModelSerializer):
     )
 
     age = serializers.IntegerField(read_only=True)
+    avatar = serializers.SerializerMethodField()
+    displayName = serializers.CharField(source='first_name', read_only=True)
+    joinedAt = serializers.DateTimeField(source='date_joined', read_only=True)
+
 
     # Метаданные
     class Meta:
@@ -35,9 +39,13 @@ class UserSerializer(serializers.ModelSerializer):
             'age',
             'bio',
             'birth_date',
+            'avatar',
+            'joinedAt',
+            'displayName'
         ]
         # Какие поля можно только читать
-        read_only_fields = ['id', 'online_status', 'last_seen', 'age']
+        read_only_fields = ['id', 'online_status', 'last_seen', 'age', 'avatar', 'displayName', 'joinedAt']
+
         # Какие поля обязательны
         extra_kwargs = {
             'email': {'required': False},
@@ -46,6 +54,16 @@ class UserSerializer(serializers.ModelSerializer):
             'birth_date': {'required': False},
         }
     
+    def get_avatar(self, obj):
+        if obj.avatar:
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(obj.avatar.url)
+            return obj.avatar.url
+        name = obj.first_name or obj.username
+        return f"https://ui-avatars.com/api/?name={name}&background=random&size=64&bold=true"
+
+
     # Валидация ДР
     def validate_birth_date(self, value):
         if value:
@@ -130,3 +148,23 @@ class UserDeviceSerializer(serializers.ModelSerializer):
         model = UserDevice
         fields = ['id', 'device_id', 'public_key', 'user_agent', 'last_active', 'is_active']
         read_only_fields = ['id', 'last_active']
+
+
+class UserUpdateSerializer(serializers.ModelSerializer):
+    displayName = serializers.CharField(source='first_name', required=False)
+    
+    class Meta:
+        model = User
+        fields = ['displayName', 'bio', 'public_key', 'birth_date']
+        extra_kwargs = {
+            'bio': {'required': False, 'max_length': 500},
+            'public_key': {'required': False},
+            'birth_date': {'required': False},
+        }
+    
+    def validate_birth_date(self, value):
+        if value:
+            from datetime import date
+            if value > date.today():
+                raise serializers.ValidationError("Birth date cannot be in the future")
+        return value
