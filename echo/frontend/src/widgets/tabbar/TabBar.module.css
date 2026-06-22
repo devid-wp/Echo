@@ -29,6 +29,20 @@
     text-transform: lowercase;
     letter-spacing: 0.04em;
     height: 100%;
+    background: transparent;
+    border: 0;
+    cursor: pointer;
+    font-family: inherit;
+    padding: 0;
+  }
+
+  .danger {
+    color: var(--fg-mute);
+  }
+
+  .danger:hover,
+  .danger:focus-visible {
+    color: var(--danger, var(--accent));
   }
 
   .item:hover,

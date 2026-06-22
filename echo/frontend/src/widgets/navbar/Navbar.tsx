@@ -22,6 +22,7 @@ export function Navbar() {
       </Link>
 
       <nav className={styles.nav} aria-label="primary">
+        <NavLink to={ROUTES.chats}>/chats</NavLink>
         <NavLink to={ROUTES.feed}>/feed</NavLink>
         {user && <NavLink to={ROUTES.profile(user.id)}>/profile</NavLink>}
       </nav>

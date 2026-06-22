@@ -1,9 +1,9 @@
 async function bootstrap() {
-  // 1. Boot the mock service worker (only when explicitly enabled)
-  const mocksEnabled =
-    import.meta.env.VITE_ENABLE_MOCKS === 'true' ||
-    import.meta.env.VITE_ENABLE_MOCKS === true
-  if (mocksEnabled) {
+  // 1. Boot the mock service worker (only when explicitly enabled).
+  // Reuse the same string→bool coercion as `shared/config/env` so the
+  // dev / prod behaviour matches what the rest of the app sees.
+  const { env } = await import('@/shared/config/env')
+  if (env.enableMocks) {
     const { worker } = await import('@/shared/api/mocks/browser')
     await worker.start({
       onUnhandledRequest: 'bypass',

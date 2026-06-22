@@ -1,0 +1,117 @@
+.head {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-1);
+  margin-bottom: var(--s-5);
+}
+
+.title {
+  font-size: var(--fs-22);
+  color: var(--fg);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.title::before {
+  content: '$ ls ~/chats';
+  color: var(--fg-mute);
+  font-size: var(--fs-13);
+  display: block;
+  margin-bottom: var(--s-1);
+}
+
+.subtitle {
+  color: var(--fg-dim);
+  font-size: var(--fs-12);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  padding: var(--s-3);
+  border: 1px solid var(--line);
+  background: var(--bg-soft);
+  text-decoration: none;
+  color: inherit;
+  transition: border-color 0.12s ease;
+}
+
+.row:hover,
+.row:focus-visible {
+  border-color: var(--accent);
+  text-decoration: none;
+}
+
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+
+.line1 {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--s-2);
+}
+
+.name {
+  font-size: var(--fs-14);
+  color: var(--fg);
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.time {
+  font-size: var(--fs-12);
+  color: var(--fg-mute);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  flex-shrink: 0;
+}
+
+.line2 {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+}
+
+.preview {
+  font-size: var(--fs-13);
+  color: var(--fg-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 1;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 6px;
+  font-size: var(--fs-12);
+  color: var(--bg);
+  background: var(--accent);
+  border-radius: 9px;
+  font-weight: 500;
+  flex-shrink: 0;
+}

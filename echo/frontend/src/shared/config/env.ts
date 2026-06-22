@@ -19,6 +19,8 @@ export const env = {
 } as const
 
 export const ROUTES = {
+  chats: '/chats',
+  chatDetail: (id: string | number) => `/chats/${id}`,
   feed: '/feed',
   profile: (id: string | number) => `/profile/${id}`,
   login: '/login',

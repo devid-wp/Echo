@@ -36,6 +36,36 @@ export interface PageCursor<T> {
   nextCursor: string | null
 }
 
+/* Chat shape as returned by `GET /api/chats`.
+   We only model the fields the UI reads; the rest comes through as `unknown`
+   in the schema until the user-shape refactor lands. */
+export interface Chat {
+  id: string
+  type: string
+  name: string | null
+  participants: (string | number)[]
+  lastMessage?: {
+    id: string | number
+    text: string
+    sender?: string | number
+    senderUsername?: string
+    createdAt: string
+  } | null
+  unreadCount: number
+  updatedAt?: string
+  createdAt?: string
+}
+
+export interface ChatMessage {
+  id: string | number
+  text: string
+  sender?: string | number
+  senderUsername?: string
+  createdAt: string
+  isEncrypted?: boolean
+  isRead?: boolean
+}
+
 /* ----- auth payloads ----- */
 
 export interface LoginPayload {

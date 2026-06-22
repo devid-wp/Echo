@@ -1,0 +1,106 @@
+.wrap {
+  display: flex;
+  flex-direction: column;
+  min-height: 60vh;
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  padding: var(--s-2) 0 var(--s-4);
+  border-bottom: 1px solid var(--line);
+  margin-bottom: var(--s-4);
+}
+
+.back {
+  color: var(--fg-mute);
+  text-decoration: none;
+  font-size: var(--fs-18);
+  padding: 0 var(--s-1);
+}
+
+.back:hover,
+.back:focus-visible {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.title {
+  font-size: var(--fs-18);
+  color: var(--fg);
+  letter-spacing: 0.04em;
+  text-transform: lowercase;
+  margin: 0;
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.thread {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+  list-style: none;
+  padding: 0;
+  margin: 0 0 var(--s-5) 0;
+  flex: 1;
+}
+
+.bubbleTheirs,
+.bubbleMine {
+  align-self: flex-start;
+  max-width: 78%;
+  padding: var(--s-3);
+  border: 1px solid var(--line);
+  background: var(--bg-soft);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.bubbleMine {
+  align-self: flex-end;
+  background: var(--bg);
+  border-color: var(--accent);
+}
+
+.bubbleText {
+  font-size: var(--fs-14);
+  color: var(--fg);
+  line-height: 1.4;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.bubbleMeta {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--fs-12);
+  color: var(--fg-mute);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.sender {
+  color: var(--fg-dim);
+}
+
+.dot {
+  opacity: 0.5;
+}
+
+.composerStub {
+  position: sticky;
+  bottom: var(--s-3);
+  text-align: center;
+  font-size: var(--fs-12);
+  color: var(--fg-mute);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: var(--s-3);
+  border: 1px dashed var(--line);
+  background: var(--bg-soft);
+}

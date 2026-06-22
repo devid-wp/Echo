@@ -4,6 +4,8 @@ import { LoginPage } from '@/pages/login/LoginPage'
 import { RegisterPage } from '@/pages/register/RegisterPage'
 import { FeedPage } from '@/pages/feed/FeedPage'
 import { ProfilePage } from '@/pages/profile/ProfilePage'
+import { ChatsPage } from '@/pages/chats/ChatsPage'
+import { ChatDetailPage } from '@/pages/chats/ChatDetailPage'
 import { ProtectedRoute } from './ProtectedRoute'
 import { PublicOnlyRoute } from './PublicOnlyRoute'
 import { QueryProvider } from './QueryProvider'
@@ -15,7 +17,7 @@ export function App() {
       <BrowserRouter>
       <Routes>
         <Route element={<AppLayout />}>
-          <Route index element={<Navigate to={ROUTES.feed} replace />} />
+          <Route index element={<Navigate to={ROUTES.chats} replace />} />
 
           <Route
             path={ROUTES.login}
@@ -35,6 +37,22 @@ export function App() {
           />
 
           <Route
+            path={ROUTES.chats}
+            element={
+              <ProtectedRoute>
+                <ChatsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/chats/:id"
+            element={
+              <ProtectedRoute>
+                <ChatDetailPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path={ROUTES.feed}
             element={
               <ProtectedRoute>
@@ -51,7 +69,7 @@ export function App() {
             }
           />
 
-          <Route path="*" element={<Navigate to={ROUTES.feed} replace />} />
+          <Route path="*" element={<Navigate to={ROUTES.chats} replace />} />
         </Route>
       </Routes>
     </BrowserRouter>
