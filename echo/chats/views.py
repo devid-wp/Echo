@@ -1,5 +1,5 @@
 from rest_framework import viewsets, status, permissions, serializers
-from rest_framework.decorators import action
+from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from django.db.models import Q
 from .models import Chat, Message
@@ -71,33 +71,37 @@ class MessageViewSet(viewsets.ModelViewSet):
             id=chat_id,
             participants=self.request.user
         ).first()
-        
+
         if not chat:
             raise serializers.ValidationError("Chat not found")
-        
+
         serializer.save(
             sender=self.request.user,
             chat=chat
         )
-    
-    @action(detail=False, methods=['post'])
-    def read(self, request, chat_pk=None):
-        """Пометить все сообщения как прочитанные"""
-        chat = Chat.objects.filter(
-            id=chat_pk,
-            participants=request.user
-        ).first()
-        
-        if not chat:
-            return Response(
-                {"code": "not_found", "message": "Chat not found"},
-                status=status.HTTP_404_NOT_FOUND
-            )
-        
-        # Помечаем все непрочитанные сообщения от других
-        Message.objects.filter(
-            chat=chat,
-            is_read=False
-        ).exclude(sender=request.user).update(is_read=True)
-        
-        return Response(status=status.HTTP_200_OK)
+
+
+@api_view(['POST'])
+def mark_chat_read(request, chat_pk):
+    """
+    POST /api/chats/<chat_pk>/read
+    Пометить все сообщения чата как прочитанные.
+    """
+    chat = Chat.objects.filter(
+        id=chat_pk,
+        participants=request.user
+    ).first()
+
+    if not chat:
+        return Response(
+            {"code": "not_found", "message": "Chat not found"},
+            status=status.HTTP_404_NOT_FOUND
+        )
+
+    # Помечаем все непрочитанные сообщения от других
+    Message.objects.filter(
+        chat=chat,
+        is_read=False
+    ).exclude(sender=request.user).update(is_read=True)
+
+    return Response(status=status.HTTP_200_OK)

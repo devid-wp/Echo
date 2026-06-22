@@ -44,11 +44,12 @@ class MessageSerializer(serializers.ModelSerializer):
             'updated_at',
         ]
         read_only_fields = [
-            'id', 
+            'id',
+            'chat',          # Подставляется в MessageViewSet.perform_create
             'sender',        # Автоматически ставим текущего пользователя
-            'is_read', 
-            'read_at', 
-            'created_at', 
+            'is_read',
+            'read_at',
+            'created_at',
             'updated_at'
         ]
 

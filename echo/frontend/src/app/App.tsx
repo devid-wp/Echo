@@ -6,11 +6,13 @@ import { FeedPage } from '@/pages/feed/FeedPage'
 import { ProfilePage } from '@/pages/profile/ProfilePage'
 import { ProtectedRoute } from './ProtectedRoute'
 import { PublicOnlyRoute } from './PublicOnlyRoute'
+import { QueryProvider } from './QueryProvider'
 import { ROUTES } from '@/shared/config/env'
 
 export function App() {
   return (
-    <BrowserRouter>
+    <QueryProvider>
+      <BrowserRouter>
       <Routes>
         <Route element={<AppLayout />}>
           <Route index element={<Navigate to={ROUTES.feed} replace />} />
@@ -53,5 +55,6 @@ export function App() {
         </Route>
       </Routes>
     </BrowserRouter>
+    </QueryProvider>
   )
 }
