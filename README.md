@@ -110,82 +110,99 @@
 
 ## Быстрый старт
 
-### 1. Подготовка
+> TL;DR: два терминала. В одном — Django на `:8000`, в другом — Vite на `:5173`.
 
 Требования: **Python 3.12+**, **Node.js 20+**, npm 10+.
 
+### Backend (терминал №1)
+
 ```bash
+# 1. Клонируем и переходим в репо
 git clone <repo-url> echo
 cd echo
-```
 
-### 2. Backend
-
-```bash
-# Виртуальное окружение (по желанию, но рекомендуется)
+# 2. Виртуальное окружение + зависимости
 python -m venv .venv
 # Windows:
 .venv\Scripts\activate
 # Linux/macOS:
-source .venv/bin/activate
+# source .venv/bin/activate
 
-# Зависимости
 pip install -r echo/requirements.txt
 
-# Миграции + сид тестовых пользователей
+# 3. Переменные окружения
+# Windows PowerShell:
+copy echo\.env.example echo\.env
+# Linux/macOS:
+# cp echo/.env.example echo/.env
+# (если .env.example нет — создай echo/.env вручную, см. раздел ниже)
+
+# 4. Миграции + сид тестовых пользователей
 cd echo
 python manage.py migrate
 python scripts/seed_test_data.py
-cd ..
-```
 
-> Сид создаёт трёх пользователей (`alice`, `bob`, `demo`, пароль `testpass123`) и один демо-чат с приветственным сообщением. Идемпотентен: при повторном запуске вайпает тестовых юзеров и пересоздаёт чат.
-
-Скопируй `echo/.env.example` (если есть) в `echo/.env` или создай свой:
-
-```env
-DJANGO_SECRET_KEY=change-me-in-prod
-DJANGO_DEBUG=True
-DJANGO_ALLOWED_HOSTS=localhost,127.0.0.1
-CORS_ALLOWED_ORIGINS=http://localhost:5173,http://127.0.0.1:5173
-```
-
-Запусти API:
-
-```bash
-cd echo
+# 5. Запуск API
 python manage.py runserver
 # → http://127.0.0.1:8000
+# GET / — JSON со списком эндпоинтов
+# /admin/ — Django admin (логин: создай через createsuperuser)
 ```
 
-Корень `GET /` отдаёт JSON со списком доступных эндпоинтов.
-
-### 3. Frontend
+### Frontend (терминал №2)
 
 ```bash
-cd frontend
+# 1. Переходим в папку фронта
+cd echo/frontend
+
+# 2. Зависимости
 npm install
 
-# 1) Если backend ещё не поднят — фронт может работать на MSW-моках:
-echo "VITE_ENABLE_MOCKS=true" > .env
+# 3. Переменные окружения фронта
+# Создай файл echo/frontend/.env вручную со следующим содержимым:
+#
+#   VITE_API_BASE_URL=http://127.0.0.1:8000
+#   VITE_ENABLE_MOCKS=false
+#
+# Если бэк ещё не поднят — оставь VITE_API_BASE_URL пустым и поставь
+# VITE_ENABLE_MOCKS=true: фронт будет работать на встроенных MSW-моках.
+
+# 4. Запуск dev-сервера
 npm run dev
 # → http://localhost:5173
-
-# 2) С реальным бэкендом — укажи URL:
-echo "VITE_API_BASE_URL=http://127.0.0.1:8000" > .env
-echo "VITE_ENABLE_MOCKS=false" >> .env
-npm run dev
 ```
 
-Фронт слушает `localhost:5173` и через прокси Vite пробрасывает `/api/*` на бэкенд (см. `frontend/vite.config.ts`). Если бэк на другом хосте — пропиши `VITE_API_BASE_URL`.
-
-### 4. Сборка production-бандла
+### Production-сборка фронта
 
 ```bash
-cd frontend
-npm run build       # tsc -b && vite build → dist/
-npm run preview     # локальный просмотр собранной версии
+cd echo/frontend
+npm run build      # tsc -b && vite build → dist/
+npm run preview    # локальный просмотр собранной версии
 ```
+
+### Всё в одном скрипте (Linux/macOS)
+
+```bash
+# backend
+git clone <repo-url> echo && cd echo
+python -m venv .venv && source .venv/bin/activate
+pip install -r echo/requirements.txt
+(cd echo && python manage.py migrate && python scripts/seed_test_data.py)
+(cd echo && python manage.py runserver) &
+
+# frontend (в том же или новом терминале)
+(cd echo/frontend && npm install && echo "VITE_API_BASE_URL=http://127.0.0.1:8000" > .env && echo "VITE_ENABLE_MOCKS=false" >> .env && npm run dev)
+```
+
+### Сид-аккаунты (после `seed_test_data.py`)
+
+| handle | пароль       | роль      |
+|--------|--------------|-----------|
+| alice  | testpass123  | тестовый  |
+| bob    | testpass123  | тестовый  |
+| demo   | testpass123  | тестовый  |
+
+У `demo` уже есть чат с `bob` и приветственное сообщение — открывается по `/chats`.
 
 ---
 
