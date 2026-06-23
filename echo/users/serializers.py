@@ -152,15 +152,39 @@ class UserDeviceSerializer(serializers.ModelSerializer):
 
 class UserUpdateSerializer(serializers.ModelSerializer):
     displayName = serializers.CharField(source='first_name', required=False)
+    handle = serializers.CharField(source='username', required=False)
     
     class Meta:
         model = User
-        fields = ['displayName', 'bio', 'public_key', 'birth_date']
+        fields = ['displayName', 'handle', 'username', 'email', 'bio', 'public_key', 'birth_date']
         extra_kwargs = {
+            'username': {'required': False},
+            'email': {'required': False},
             'bio': {'required': False, 'max_length': 500},
             'public_key': {'required': False},
             'birth_date': {'required': False},
         }
+
+    def validate_handle(self, value):
+        if value:
+            user = self.context['request'].user
+            if User.objects.filter(username=value).exclude(id=user.id).exists():
+                raise serializers.ValidationError("Handle already taken")
+        return value
+
+    def validate_username(self, value):
+        if value:
+            user = self.context['request'].user
+            if User.objects.filter(username=value).exclude(id=user.id).exists():
+                raise serializers.ValidationError("Handle already taken")
+        return value
+
+    def validate_email(self, value):
+        if value:
+            user = self.context['request'].user
+            if User.objects.filter(email=value).exclude(id=user.id).exists():
+                raise serializers.ValidationError("Email already taken")
+        return value
     
     def validate_birth_date(self, value):
         if value:

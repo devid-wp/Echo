@@ -8,6 +8,8 @@ export interface User {
   id: string
   handle: string              // unique, url-safe, like "ada"
   displayName: string
+  email?: string
+  avatar?: string | null
   bio?: string
   joinedAt: string            // ISO-8601
   postsCount: number
@@ -44,26 +46,29 @@ export interface Chat {
   type: string
   name: string | null
   participants: (string | number)[]
-  lastMessage?: {
+  participants_data?: any[]
+  last_message?: {
     id: string | number
     text: string
     sender?: string | number
-    senderUsername?: string
-    createdAt: string
+    sender_username?: string
+    created_at: string
   } | null
-  unreadCount: number
-  updatedAt?: string
-  createdAt?: string
+  unread_count?: number
+  updated_at?: string
+  created_at?: string
 }
 
 export interface ChatMessage {
   id: string | number
   text: string
   sender?: string | number
-  senderUsername?: string
-  createdAt: string
-  isEncrypted?: boolean
-  isRead?: boolean
+  sender_username?: string
+  created_at: string
+  is_encrypted?: boolean
+  is_read?: boolean
+  attachments?: string[]
+  file_type?: string | null
 }
 
 /* ----- auth payloads ----- */

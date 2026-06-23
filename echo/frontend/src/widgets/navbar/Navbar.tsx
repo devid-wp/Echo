@@ -3,6 +3,7 @@ import { Avatar, Button } from '@/shared/ui'
 import { useAuthStore } from '@/store/auth'
 import { ROUTES } from '@/shared/config/env'
 import styles from './Navbar.module.css'
+import { ThemeToggle } from '@/components/ThemeToggle'
 
 export function Navbar() {
   const user = useAuthStore((s) => s.user)
@@ -30,6 +31,7 @@ export function Navbar() {
       <div className={styles.right}>
         {user ? (
           <>
+            <ThemeToggle />
             <span className={styles.session}>
               <Avatar handle={user.handle} size="sm" />
               <span className={styles.handle}>@{user.handle}</span>
@@ -39,9 +41,12 @@ export function Navbar() {
             </Button>
           </>
         ) : (
-          <Button size="sm" variant="primary" onClick={() => navigate(ROUTES.login)}>
-            sign in
-          </Button>
+          <>
+            <ThemeToggle />
+            <Button size="sm" variant="primary" onClick={() => navigate(ROUTES.login)}>
+              sign in
+            </Button>
+          </>
         )}
       </div>
     </header>

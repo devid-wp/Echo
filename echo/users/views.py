@@ -194,9 +194,12 @@ class MeView(generics.RetrieveUpdateAPIView):
     def update(self, request, *args, **kwargs):
         # ✅ Поддерживаем displayName вместо first_name
         if 'displayName' in request.data:
-            request.data._mutable = True
-            request.data['first_name'] = request.data.pop('displayName')
-            request.data._mutable = False
+            if hasattr(request.data, '_mutable'):
+                request.data._mutable = True
+                request.data['first_name'] = request.data.pop('displayName')
+                request.data._mutable = False
+            else:
+                request.data['first_name'] = request.data.pop('displayName')
         
         return super().update(request, *args, **kwargs)
     
@@ -220,3 +223,15 @@ class UserDetailView(APIView):
             )
         serializer = UserSerializer(user, context={'request': request})
         return Response(serializer.data)
+
+
+class UserListView(generics.ListAPIView):
+    """
+    Список пользователей (исключая текущего) для создания групп.
+    GET /api/users
+    """
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class = UserSerializer
+
+    def get_queryset(self):
+        return User.objects.exclude(id=self.request.user.id)

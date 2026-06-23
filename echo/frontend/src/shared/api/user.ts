@@ -31,6 +31,7 @@ export interface NormalizedUser {
   id: string
   handle: string
   displayName: string
+  avatar?: string | null
   bio?: string
   joinedAt: string
   postsCount: number
@@ -73,6 +74,7 @@ export function normalizeApiUser(raw: ApiUser | string | number | null | undefin
     id,
     handle,
     displayName,
+    avatar: raw.avatar,
     bio: raw.bio,
     joinedAt: raw.joinedAt ?? new Date(0).toISOString(),
     postsCount: raw.postsCount ?? 0,

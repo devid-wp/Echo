@@ -1,7 +1,9 @@
+import { z } from 'zod'
 import { api } from './client'
 import {
   apiUserSchema,
   authSessionSchema,
+  chatSchema,
   chatsListSchema,
   loginPayloadSchema,
   messageListSchema,
@@ -29,7 +31,7 @@ import { normalizeApiUser } from './user'
 
 export async function login(payload: LoginPayload): Promise<AuthSession> {
   const body = loginPayloadSchema.parse(payload)
-  const { data } = await api.post('/api/auth/login', body)
+  const { data } = await api.post('/api/auth/login/', body)
   const raw = authSessionSchema.parse(data)
   // authSessionSchema only checks `token` + `user` exists. Normalise the
   // user to the frontend's User shape.
@@ -41,7 +43,7 @@ export async function login(payload: LoginPayload): Promise<AuthSession> {
 
 export async function register(payload: RegisterPayload): Promise<AuthSession> {
   const body = registerPayloadSchema.parse(payload)
-  const { data } = await api.post('/api/auth/register', body)
+  const { data } = await api.post('/api/auth/register/', body)
   const raw = authSessionSchema.parse(data)
   return {
     token: raw.token,
@@ -50,7 +52,7 @@ export async function register(payload: RegisterPayload): Promise<AuthSession> {
 }
 
 export async function logout(): Promise<void> {
-  await api.post('/api/auth/logout')
+  await api.post('/api/auth/logout/')
 }
 
 export async function fetchMe(): Promise<User> {
@@ -69,7 +71,7 @@ export async function fetchFeed(cursor?: string | null): Promise<PageCursor<Post
 }
 
 export async function createPost(body: string): Promise<Post> {
-  const { data } = await api.post('/api/feed', { body })
+  const { data } = await api.post('/api/feed/', { body })
   return postSchema.parse(data)
 }
 
@@ -81,4 +83,45 @@ export async function fetchChats(): Promise<Chat[]> {
 export async function fetchChatMessages(chatId: string | number): Promise<ChatMessage[]> {
   const { data } = await api.get(`/api/chats/${chatId}/messages`)
   return messageListSchema.parse(data) as unknown as ChatMessage[]
+}
+
+export async function fetchUsers(): Promise<User[]> {
+  const { data } = await api.get('/api/users')
+  const list = z.array(apiUserSchema).parse(data)
+  return list.map(normalizeApiUser)
+}
+
+export async function updateProfile(payload: Partial<User> & { displayName?: string, handle?: string, email?: string }): Promise<User> {
+  const { data } = await api.patch('/api/users/me', payload)
+  return normalizeApiUser(apiUserSchema.parse(data))
+}
+
+export async function uploadAvatar(file: File): Promise<{ avatar: string }> {
+  const formData = new FormData()
+  formData.append('avatar', file)
+  const { data } = await api.post('/api/users/me/avatar/', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  })
+  return data
+}
+
+export async function deleteAvatar(): Promise<void> {
+  await api.delete('/api/users/me/avatar/')
+}
+
+export async function createGroup(name: string, participants: (string | number)[]): Promise<Chat> {
+  const { data } = await api.post('/api/chats/groups/', { name, participants })
+  return chatSchema.parse(data) as unknown as Chat
+}
+
+export async function uploadChatFile(file: File, chatId?: string | number): Promise<{ url: string; filename: string; size: number; type: string }> {
+  const formData = new FormData()
+  formData.append('file', file)
+  if (chatId != null) {
+    formData.append('chat_id', String(chatId))
+  }
+  const { data } = await api.post('/api/upload/', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  })
+  return data
 }

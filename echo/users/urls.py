@@ -1,5 +1,5 @@
 
-from users.views import RegisterView, LoginView, MeView, UploadAvatarView, LogoutView, UserDetailView
+from users.views import RegisterView, LoginView, MeView, UploadAvatarView, LogoutView, UserDetailView, UserListView
 from django.urls import path
 from django.conf import settings
 from django.conf.urls.static import static
@@ -11,6 +11,7 @@ urlpatterns = [
     path('users/me/avatar', UploadAvatarView.as_view(), name='avatar'),
     path('auth/logout', LogoutView.as_view(), name='logout'),
     path('users/<int:user_id>', UserDetailView.as_view(), name='user-detail'),
+    path('users', UserListView.as_view()),
 ]
 
 if settings.DEBUG:

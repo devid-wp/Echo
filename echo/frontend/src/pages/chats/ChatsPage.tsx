@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
-import { Avatar, EmptyState } from '@/shared/ui'
-import { fetchChats } from '@/shared/api/endpoints'
+import { Link, useNavigate } from 'react-router-dom'
+import { Avatar, Button, EmptyState } from '@/shared/ui'
+import { fetchChats, fetchUsers, createGroup } from '@/shared/api/endpoints'
 import { ApiError } from '@/shared/api/client'
 import { useAuthStore } from '@/store/auth'
-import type { Chat } from '@/types/domain'
+import type { Chat, User } from '@/types/domain'
 import { env, ROUTES } from '@/shared/config/env'
 import styles from './ChatsPage.module.css'
 
@@ -15,14 +15,14 @@ const DEMO_CHAT: Chat = {
   type: 'private',
   name: null,
   participants: ['self', 'bob'],
-  lastMessage: {
+  last_message: {
     id: 0,
     text: 'Hi there! Welcome to Echo.',
     sender: 'bob',
-    senderUsername: 'bob',
-    createdAt: new Date().toISOString(),
+    sender_username: 'bob',
+    created_at: new Date().toISOString(),
   },
-  unreadCount: 0,
+  unread_count: 0,
 }
 
 function previewName(chat: Chat, myId: string | number | undefined): string {
@@ -44,8 +44,16 @@ function timeAgo(iso?: string): string {
 export function ChatsPage() {
   const user = useAuthStore((s) => s.user)
   const myId = user?.id
+  const navigate = useNavigate()
   const [chats, setChats] = useState<Chat[] | null>(null)
   const [error, setError] = useState<string | null>(null)
+
+  // Group creation state
+  const [modalOpen, setModalOpen] = useState(false)
+  const [groupName, setGroupName] = useState('')
+  const [allUsers, setAllUsers] = useState<User[]>([])
+  const [selectedUsers, setSelectedUsers] = useState<string[]>([])
+  const [creatingGroup, setCreatingGroup] = useState(false)
 
   useEffect(() => {
     let cancelled = false
@@ -65,11 +73,50 @@ export function ChatsPage() {
     return () => { cancelled = true }
   }, [])
 
+  // Load all users when modal opens
+  useEffect(() => {
+    if (modalOpen) {
+      fetchUsers()
+        .then((list) => {
+          setAllUsers(list)
+        })
+        .catch((e) => {
+          console.error('failed to load users', e)
+        })
+    }
+  }, [modalOpen])
+
+  const handleCreateGroup = async () => {
+    if (!groupName.trim() || selectedUsers.length === 0) return
+    setCreatingGroup(true)
+    try {
+      const newChat = await createGroup(groupName.trim(), selectedUsers)
+      setModalOpen(false)
+      setGroupName('')
+      setSelectedUsers([])
+      navigate(ROUTES.chatDetail(newChat.id))
+    } catch (e: any) {
+      setError(e instanceof ApiError ? e.message : 'failed to create group')
+    } finally {
+      setCreatingGroup(false)
+    }
+  }
+
   return (
     <div>
       <header className={styles.head}>
-        <h1 className={styles.title}>chats</h1>
-        <p className={styles.subtitle}>// {chats?.length ?? '—'} conversations</p>
+        <div>
+          <h1 className={styles.title}>chats</h1>
+          <p className={styles.subtitle}>// {chats?.length ?? '—'} conversations</p>
+        </div>
+        <Button
+          variant="primary"
+          onClick={() => setModalOpen(true)}
+          className={styles.createBtn}
+          prefix="+"
+        >
+          create group
+        </Button>
       </header>
 
       {error && (
@@ -90,9 +137,9 @@ export function ChatsPage() {
         <ul className={styles.list}>
           {chats.map((chat) => {
             const title = previewName(chat, myId)
-            const preview = chat.lastMessage?.text ?? 'no messages yet'
-            const ago = timeAgo(chat.lastMessage?.createdAt ?? chat.updatedAt)
-            const unread = chat.unreadCount ?? 0
+            const preview = chat.last_message?.text ?? 'no messages yet'
+            const ago = timeAgo(chat.last_message?.created_at ?? chat.updated_at)
+            const unread = chat.unread_count ?? 0
             return (
               <li key={chat.id}>
                 <Link to={ROUTES.chatDetail(chat.id)} className={styles.row} aria-label={`open chat with ${title}`}>
@@ -116,6 +163,82 @@ export function ChatsPage() {
             )
           })}
         </ul>
+      )}
+
+      {modalOpen && (
+        <div className={styles.modalOverlay}>
+          <div className={styles.modalContent}>
+            <h2 className={styles.modalTitle}>create group</h2>
+            <div className={styles.modalForm}>
+              <div className={styles.modalField}>
+                <label className={styles.modalLabel}>group name</label>
+                <input
+                  type="text"
+                  value={groupName}
+                  onChange={(e) => setGroupName(e.target.value)}
+                  className={styles.modalInput}
+                  placeholder="Enter group name..."
+                  required
+                />
+              </div>
+
+              <div className={styles.modalField}>
+                <label className={styles.modalLabel}>select participants</label>
+                <div className={styles.usersList}>
+                  {allUsers.length === 0 ? (
+                    <div className={styles.emptyUsers}>No other users available</div>
+                  ) : (
+                    allUsers.map((u) => (
+                      <label key={u.id} className={styles.userRow}>
+                        <input
+                          type="checkbox"
+                          checked={selectedUsers.includes(u.id)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setSelectedUsers((prev) => [...prev, u.id])
+                            } else {
+                              setSelectedUsers((prev) => prev.filter((id) => id !== u.id))
+                            }
+                          }}
+                          className={styles.checkbox}
+                        />
+                        <Avatar handle={u.handle} avatar={u.avatar} size="sm" />
+                        <span className={styles.userInfo}>
+                          {u.displayName} (@{u.handle})
+                        </span>
+                      </label>
+                    ))
+                  )}
+                </div>
+              </div>
+
+              <div className={styles.modalActions}>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={() => {
+                    setModalOpen(false)
+                    setGroupName('')
+                    setSelectedUsers([])
+                  }}
+                  disabled={creatingGroup}
+                >
+                  cancel
+                </Button>
+                <Button
+                  type="button"
+                  variant="primary"
+                  onClick={handleCreateGroup}
+                  loading={creatingGroup}
+                  disabled={!groupName.trim() || selectedUsers.length === 0}
+                  prefix=">"
+                >
+                  create
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )

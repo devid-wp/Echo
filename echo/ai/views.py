@@ -1,3 +1,4 @@
+from django.conf import settings
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
@@ -38,7 +39,7 @@ class SmartReplyView(APIView):
         if reply:
             return Response({
                 "reply": reply,
-                "model": "deepseek-v4"
+                "model": settings.DEEPSEEK_MODEL
             })
         else:
             return Response(

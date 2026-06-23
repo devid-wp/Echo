@@ -49,6 +49,46 @@ class ChatViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(chat)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
+    @action(detail=False, methods=['post'], url_path='groups')
+    def create_group(self, request):
+        """Создание группового чата"""
+        name = request.data.get('name')
+        participant_ids = request.data.get('participants', [])
+        group_key_encrypted = request.data.get('group_key_encrypted', None)
+        
+        if not name or not name.strip():
+            return Response(
+                {"code": "validation", "message": "Group name is required"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+            
+        if not participant_ids:
+            return Response(
+                {"code": "validation", "message": "At least one participant is required"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+            
+        # Создаём группу
+        chat = Chat.objects.create(
+            type='group',
+            name=name,
+            group_key_encrypted=group_key_encrypted
+        )
+        
+        # Добавляем участников
+        from users.models import User
+        participants = list(User.objects.filter(id__in=participant_ids))
+        participants.append(request.user)
+        
+        # Дедупликация
+        participants = list(set(participants))
+        
+        chat.participants.set(participants)
+        chat.save()
+        
+        serializer = self.get_serializer(chat)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
 
 class MessageViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated]

@@ -23,6 +23,7 @@ export const ROUTES = {
   chatDetail: (id: string | number) => `/chats/${id}`,
   feed: '/feed',
   profile: (id: string | number) => `/profile/${id}`,
+  profileEdit: '/profile/edit',
   login: '/login',
   register: '/register',
   root: '/',

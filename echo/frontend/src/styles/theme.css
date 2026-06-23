@@ -1,0 +1,29 @@
+:root {
+  /* Light theme */
+  --color-primary: hsl(210, 78%, 56%);
+  --color-background: hsl(0, 0%, 100%);
+  --color-surface: hsl(0, 0%, 98%);
+  --color-text-primary: hsl(210, 10%, 15%);
+  --color-text-secondary: hsl(210, 8%, 45%);
+  --color-border: hsl(210, 10%, 85%);
+  --radius: 8px;
+  --spacing: 0.75rem;
+  --font-family: 'Inter', system-ui, sans-serif;
+}
+
+[data-theme='dark'] {
+  --color-primary: hsl(210, 78%, 66%);
+  --color-background: hsl(210, 15%, 12%);
+  --color-surface: hsl(210, 12%, 18%);
+  --color-text-primary: hsl(0, 0%, 95%);
+  --color-text-secondary: hsl(210, 8%, 60%);
+  --color-border: hsl(210, 10%, 30%);
+}
+
+body {
+  background: var(--color-background);
+  color: var(--color-text-primary);
+  font-family: var(--font-family);
+  margin: 0;
+  padding: 0;
+}

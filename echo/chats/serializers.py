@@ -19,11 +19,6 @@ class MessageSerializer(serializers.ModelSerializer):
     # Аватар отправителя
     sender_avatar = serializers.SerializerMethodField()
     
-    sender_data = UserSerializer(
-        source='sender',
-        read_only=True
-    )
-    
     class Meta:
         model = Message
         fields = [
@@ -33,7 +28,6 @@ class MessageSerializer(serializers.ModelSerializer):
             'sender_username',  # Имя отправителя (доп. поле)
             'sender_data',   # Полные данные отправителя (доп. поле)
             'text',
-            'sender_data',
             'sender_avatar',
             'is_encrypted',
             'is_read',

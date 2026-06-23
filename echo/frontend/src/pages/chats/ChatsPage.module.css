@@ -1,7 +1,8 @@
 .head {
   display: flex;
-  flex-direction: column;
-  gap: var(--s-1);
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-4);
   margin-bottom: var(--s-5);
 }
 
@@ -114,4 +115,127 @@
   border-radius: 9px;
   font-weight: 500;
   flex-shrink: 0;
+}
+
+.createBtn {
+  flex-shrink: 0;
+}
+
+.modalOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(4px);
+  display: grid;
+  place-items: center;
+  z-index: 1000;
+  padding: var(--s-4);
+}
+
+.modalContent {
+  background: var(--bg);
+  border: 1px solid var(--line);
+  padding: var(--s-5);
+  width: 100%;
+  max-width: 480px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-4);
+}
+
+.modalTitle {
+  font-family: var(--font-mono);
+  font-size: var(--fs-18);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--fg);
+  margin: 0;
+  border-bottom: 1px solid var(--line);
+  padding-bottom: var(--s-3);
+}
+
+.modalForm {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-4);
+}
+
+.modalField {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+}
+
+.modalLabel {
+  font-size: var(--fs-12);
+  color: var(--fg-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.modalInput {
+  background: var(--bg-soft);
+  border: 1px solid var(--line);
+  color: var(--fg);
+  padding: var(--s-3);
+  font-family: inherit;
+  font-size: var(--fs-14);
+}
+
+.modalInput:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.usersList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+  max-height: 200px;
+  overflow-y: auto;
+  border: 1px solid var(--line);
+  padding: var(--s-2);
+  background: var(--bg-soft);
+}
+
+.userRow {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  padding: var(--s-2);
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.1s ease;
+}
+
+.userRow:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.checkbox {
+  cursor: pointer;
+}
+
+.userInfo {
+  font-size: var(--fs-13);
+  color: var(--fg);
+}
+
+.emptyUsers {
+  text-align: center;
+  color: var(--fg-mute);
+  font-size: var(--fs-13);
+  padding: var(--s-4) 0;
+}
+
+.modalActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--s-3);
+  margin-top: var(--s-2);
+  border-top: 1px solid var(--line);
+  padding-top: var(--s-4);
 }

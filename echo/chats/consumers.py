@@ -50,7 +50,12 @@ class ChatConsumer(AsyncWebsocketConsumer):
         
         if message_type == 'message':
             # Сохраняем сообщение
-            message = await self.save_message(data.get('text'))
+            message = await self.save_message(
+                text=data.get('text', ''),
+                attachments=data.get('attachments', []),
+                file_type=data.get('file_type', None),
+                is_encrypted=data.get('is_encrypted', False)
+            )
             
             # Отправляем всем в группе
             await self.channel_layer.group_send(
@@ -132,7 +137,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
         return serializer.data
     
     @database_sync_to_async
-    def save_message(self, text):
+    def save_message(self, text, attachments=None, file_type=None, is_encrypted=False):
         """Сохранение сообщения"""
         from .models import Chat, Message
         from .serializers import MessageSerializer
@@ -141,7 +146,9 @@ class ChatConsumer(AsyncWebsocketConsumer):
             chat=chat,
             sender=self.user,
             text=text,
-            is_encrypted=False
+            attachments=attachments or [],
+            file_type=file_type,
+            is_encrypted=is_encrypted
         )
         
         # Сериализуем для отправки

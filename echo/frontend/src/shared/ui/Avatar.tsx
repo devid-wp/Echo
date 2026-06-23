@@ -3,11 +3,12 @@ import styles from './Avatar.module.css'
 
 interface AvatarProps {
   handle: string
+  avatar?: string | null
   size?: 'sm' | 'md' | 'lg' | 'xl'
   className?: string
 }
 
-export function Avatar({ handle, size = 'md', className }: AvatarProps) {
+export function Avatar({ handle, avatar, size = 'md', className }: AvatarProps) {
   // Take the first two chars of handle for the glyph — looks like a unix prompt suffix
   const glyph = handle.slice(0, 2).padEnd(2, '_')
   return (
@@ -15,7 +16,11 @@ export function Avatar({ handle, size = 'md', className }: AvatarProps) {
       className={clsx(styles.avatar, styles[size], className)}
       aria-hidden
     >
-      {glyph}
+      {avatar ? (
+        <img src={avatar} alt={handle} className={styles.img} />
+      ) : (
+        glyph
+      )}
     </span>
   )
 }

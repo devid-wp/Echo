@@ -4,6 +4,7 @@ import { LoginPage } from '@/pages/login/LoginPage'
 import { RegisterPage } from '@/pages/register/RegisterPage'
 import { FeedPage } from '@/pages/feed/FeedPage'
 import { ProfilePage } from '@/pages/profile/ProfilePage'
+import { EditProfilePage } from '@/pages/profile/EditProfilePage'
 import { ChatsPage } from '@/pages/chats/ChatsPage'
 import { ChatDetailPage } from '@/pages/chats/ChatDetailPage'
 import { ProtectedRoute } from './ProtectedRoute'
@@ -65,6 +66,14 @@ export function App() {
             element={
               <ProtectedRoute>
                 <ProfilePage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path={ROUTES.profileEdit}
+            element={
+              <ProtectedRoute>
+                <EditProfilePage />
               </ProtectedRoute>
             }
           />

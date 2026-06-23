@@ -50,7 +50,7 @@ export function ProfilePage() {
   return (
     <div>
       <header className={styles.head}>
-        <Avatar handle={user.handle} size="xl" />
+        <Avatar handle={user.handle} avatar={user.avatar} size="xl" />
         <div className={styles.identity}>
           <div className={styles.handle}>{user.handle}</div>
           <div className={styles.name}>{user.displayName}</div>
@@ -64,8 +64,8 @@ export function ProfilePage() {
         </div>
         <div className={styles.actions}>
           {isMe ? (
-            <Button variant="ghost" onClick={() => window.location.assign(ROUTES.feed)}>
-              you
+            <Button variant="ghost" onClick={() => window.location.assign(ROUTES.profileEdit)}>
+              edit profile
             </Button>
           ) : (
             <Button variant="primary" prefix="+">
