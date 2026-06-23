@@ -1,10 +1,13 @@
 from rest_framework import viewsets, status, permissions, serializers
-from rest_framework.decorators import api_view
+from rest_framework.decorators import api_view, action
 from rest_framework.response import Response
+from rest_framework.views import APIView
+from rest_framework.permissions import IsAuthenticated
 from django.db.models import Q
 from .models import Chat, Message
 from .serializers import ChatSerializer, ChatDetailSerializer, MessageSerializer
-
+from rest_framework.parsers import MultiPartParser, FormParser
+from core.upload import upload_file, validate_file
 
 class ChatViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
@@ -79,29 +82,63 @@ class MessageViewSet(viewsets.ModelViewSet):
             sender=self.request.user,
             chat=chat
         )
+    
+    @action(detail=False, methods=['post'])
+    def read(self, request, chat_pk=None):
+        """Пометить все сообщения как прочитанные"""
+        chat = Chat.objects.filter(
+            id=chat_pk,
+            participants=request.user
+        ).first()
+        
+        if not chat:
+            return Response(
+                {"code": "not_found", "message": "Chat not found"},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        # Помечаем все непрочитанные сообщения от других
+        Message.objects.filter(
+            chat=chat,
+            is_read=False
+        ).exclude(sender=request.user).update(is_read=True)
+        
+        return Response(status=status.HTTP_200_OK)
 
-
-@api_view(['POST'])
-def mark_chat_read(request, chat_pk):
+class UploadFileView(APIView):
     """
-    POST /api/chats/<chat_pk>/read
-    Пометить все сообщения чата как прочитанные.
+    Загрузка файла для чата
+    POST /api/upload/
     """
-    chat = Chat.objects.filter(
-        id=chat_pk,
-        participants=request.user
-    ).first()
-
-    if not chat:
-        return Response(
-            {"code": "not_found", "message": "Chat not found"},
-            status=status.HTTP_404_NOT_FOUND
-        )
-
-    # Помечаем все непрочитанные сообщения от других
-    Message.objects.filter(
-        chat=chat,
-        is_read=False
-    ).exclude(sender=request.user).update(is_read=True)
-
-    return Response(status=status.HTTP_200_OK)
+    permission_classes = [IsAuthenticated]
+    parser_classes = [MultiPartParser, FormParser]
+    
+    def post(self, request):
+        if 'file' not in request.FILES:
+            return Response(
+                {"code": "validation", "message": "File is required"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        file = request.FILES['file']
+        chat_id = request.data.get('chat_id')
+        
+        try:
+            # Валидация
+            validate_file(file)
+            
+            # Загрузка
+            file_url = upload_file(file, request.user.id, chat_id)
+            
+            return Response({
+                "url": file_url,
+                "filename": file.name,
+                "size": file.size,
+                "type": file.content_type
+            }, status=status.HTTP_201_CREATED)
+            
+        except ValueError as e:
+            return Response(
+                {"code": "validation", "message": str(e)},
+                status=status.HTTP_400_BAD_REQUEST
+            )

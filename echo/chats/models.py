@@ -67,7 +67,13 @@ class Message(models.Model):
         blank=True,
         verbose_name="Вложения(массив url)"
     )
-
+    file_type = models.CharField(
+        max_length=50,
+        blank=True,
+        null=True,
+        help_text="Тип файла: 'image', 'file', 'audio', 'video'"
+    )
+    
     # Содержание сообщения
     text = models.TextField(verbose_name="Текст сообщения")
     # Снова шифрование НА ПОТОМ

@@ -40,6 +40,7 @@ class MessageSerializer(serializers.ModelSerializer):
             'read_at',
             'reply_to',
             'attachments',
+            'file_type',
             'created_at',
             'updated_at',
         ]
