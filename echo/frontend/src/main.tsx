@@ -1,7 +1,13 @@
-async function bootstrap() {
-  // Load environment variables
-  const { env } = await import('@/shared/config/env');
+import React, { StrictMode } from 'react';
+import { createRoot } from 'react-dom/client';
+import { env } from '@/shared/config/env';
+import { App } from './app/App';
+import { hydrateAuth } from '@/store/auth';
 
+import './styles/global.css';
+import './styles/theme.css';
+
+async function bootstrap() {
   // Initialize mock service worker only in development when enabled
   if (env.isDev && env.enableMocks) {
     const { worker } = await import('@/shared/api/mocks/browser');
@@ -11,29 +17,16 @@ async function bootstrap() {
     });
   }
 
-  // Import global styles (including theme)
-  await import('./styles/global.css');
-  await import('./styles/theme.css');
+  hydrateAuth();
 
-
-
-  // 2. Render
-  const { StrictMode } = await import('react')
-  const { createRoot } = await import('react-dom/client')
-  const { App } = await import('./app/App')
-  const { hydrateAuth } = await import('@/store/auth')
-
-
-  hydrateAuth()
-
-  const rootEl = document.getElementById('root')
-  if (!rootEl) throw new Error('#root element not found')
+  const rootEl = document.getElementById('root');
+  if (!rootEl) throw new Error('#root element not found');
 
   createRoot(rootEl).render(
     <StrictMode>
       <App />
-    </StrictMode>,
-  )
+    </StrictMode>
+  );
 }
 
-bootstrap()
+bootstrap();
