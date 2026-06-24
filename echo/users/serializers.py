@@ -20,6 +20,7 @@ class UserSerializer(serializers.ModelSerializer):
 
     age = serializers.IntegerField(read_only=True)
     avatar = serializers.SerializerMethodField()
+    handle = serializers.CharField(source='username', read_only=True)
     displayName = serializers.CharField(source='first_name', read_only=True)
     joinedAt = serializers.DateTimeField(source='date_joined', read_only=True)
 
@@ -41,10 +42,11 @@ class UserSerializer(serializers.ModelSerializer):
             'birth_date',
             'avatar',
             'joinedAt',
-            'displayName'
+            'displayName',
+            'handle',
         ]
         # Какие поля можно только читать
-        read_only_fields = ['id', 'online_status', 'last_seen', 'age', 'avatar', 'displayName', 'joinedAt']
+        read_only_fields = ['id', 'online_status', 'last_seen', 'age', 'avatar', 'displayName', 'joinedAt', 'handle']
 
         # Какие поля обязательны
         extra_kwargs = {
