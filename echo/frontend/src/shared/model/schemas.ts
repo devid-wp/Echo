@@ -37,13 +37,17 @@ export const userSchema = z.object({
 })
 
 export const postSchema = z.object({
-  id: z.string(),
-  author: userSchema.pick({ id: true, handle: true, displayName: true }),
+  id: z.union([z.string(), z.number()]).transform(String),
+  author: z.object({
+    id: z.union([z.string(), z.number()]).transform(String),
+    handle: z.string().default('unknown'),
+    displayName: z.string().default('Unknown'),
+  }),
   body: z.string(),
   createdAt: z.string(),
-  likes: z.number().int().nonnegative(),
-  comments: z.number().int().nonnegative(),
-  likedByMe: z.boolean().optional(),
+  likes: z.number().int().nonnegative().default(0),
+  comments: z.number().int().nonnegative().default(0),
+  likedByMe: z.boolean().optional().default(false),
 })
 
 export const authSessionSchema = z.object({

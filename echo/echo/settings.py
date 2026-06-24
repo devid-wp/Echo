@@ -50,6 +50,7 @@ INSTALLED_APPS = [
     'users',
     'core',
     'channels',
+    'feed',
 ]
 
 AUTH_USER_MODEL = 'users.User'

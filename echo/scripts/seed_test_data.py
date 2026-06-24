@@ -12,6 +12,7 @@ django.setup()
 
 from django.contrib.auth import get_user_model
 from chats.models import Chat, Message
+from feed.models import Post, PostLike
 
 User = get_user_model()
 
@@ -43,6 +44,29 @@ Message.objects.create(
     is_encrypted=True,
 )
 
+# Clean up feed posts (already cascade-deleted but just to make sure)
+Post.objects.all().delete()
+
+# Seed posts
+post1 = Post.objects.create(
+    author=users["alice"],
+    body="Hello world! This is my first post on Echo Feed. Decentralization rules! 🚀"
+)
+post2 = Post.objects.create(
+    author=users["bob"],
+    body="Hey Alice! Glad to be here. The split-screen chat design looks super premium!"
+)
+post3 = Post.objects.create(
+    author=users["demo"],
+    body="Testing the feed capability. Seems to be working flawlessly!"
+)
+
+# Likes
+PostLike.objects.create(post=post1, user=users["bob"])
+PostLike.objects.create(post=post1, user=users["demo"])
+PostLike.objects.create(post=post2, user=users["alice"])
+
+print("  seeded feed posts and likes")
 print(f"  created chat id={chat.id} between alice & bob with 1 welcome message")
 print()
 print("=" * 60)
