@@ -38,14 +38,14 @@ export function LoginForm({ onSubmit }: LoginFormProps) {
   return (
     <form className={styles.form} onSubmit={submit} noValidate>
       <Field
-        label="email"
+        label="email or handle"
         required
         prompt="$"
         inputProps={{
-          type: 'email',
-          autoComplete: 'email',
+          type: 'text',
+          autoComplete: 'username',
           autoFocus: true,
-          placeholder: 'ada@echo.dev',
+          placeholder: 'alice@echo.dev  or  alice',
           ...register('email'),
         }}
         error={errors.email?.message}

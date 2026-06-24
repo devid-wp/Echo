@@ -48,7 +48,8 @@ export const postSchema = z.object({
 
 export const authSessionSchema = z.object({
   token: z.string().min(1),
-  user: userSchema,
+  // Accept raw API shape — normalizeApiUser handles the conversion
+  user: z.record(z.unknown()),
 })
 
 export const pageCursorSchema = <T extends z.ZodTypeAny>(item: T) =>
@@ -58,8 +59,9 @@ export const pageCursorSchema = <T extends z.ZodTypeAny>(item: T) =>
   })
 
 export const loginPayloadSchema = z.object({
-  email: z.string().email(),
-  password: z.string().min(8),
+  // Allow login with email OR username handle
+  email: z.string().min(1, 'Enter email or username'),
+  password: z.string().min(8, 'Password must be at least 8 characters'),
 })
 
 export const registerPayloadSchema = z.object({

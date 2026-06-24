@@ -139,18 +139,21 @@ class LoginView(generics.GenericAPIView):
     permission_classes = [permissions.AllowAny]
 
     def post(self, request):
-        email = request.data.get('email')
+        identifier = request.data.get('email') or request.data.get('username')
         password = request.data.get('password')
 
-        if not email or not password:
+        if not identifier or not password:
             return Response(
                 {"code": "validation", "message": "Email and password are required"},
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        try:
-            user = User.objects.get(email=email)
-        except User.DoesNotExist:
+        # Accept either an email OR a username as the identifier. Email lookup
+        # is case-insensitive so "Alice@echo.dev" and "alice@echo.dev" both work.
+        user = User.objects.filter(email__iexact=identifier).first()
+        if user is None:
+            user = User.objects.filter(username__iexact=identifier).first()
+        if user is None:
             return Response(
                 {"code": "invalid_credentials", "message": "Invalid credentials"},
                 status=status.HTTP_401_UNAUTHORIZED
