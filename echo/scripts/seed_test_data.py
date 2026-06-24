@@ -60,11 +60,72 @@ post3 = Post.objects.create(
     author=users["demo"],
     body="Testing the feed capability. Seems to be working flawlessly!"
 )
+post4 = Post.objects.create(
+    author=users["alice"],
+    body="[SYSTEM EVENT] Initialized local DHT routing table. Connected to 12 active bootstrap peers."
+)
+post5 = Post.objects.create(
+    author=users["bob"],
+    body="commit: 4a2f8b1 - feat: implement end-to-end encryption handshake using Curve25519"
+)
+post6 = Post.objects.create(
+    author=users["demo"],
+    body="[NODE METRICS] Cpu utilization: 4.2% | Memory: 154MB/2048MB | Active WebSocket channels: 42"
+)
+post7 = Post.objects.create(
+    author=users["alice"],
+    body="Who's up for a quick voice/video calls hackathon next weekend? Let's add WebRTC support!"
+)
+post8 = Post.objects.create(
+    author=users["bob"],
+    body="Highly recommend switching your client theme to 'Monokai Terminal' for maximum immersion."
+)
+post9 = Post.objects.create(
+    author=users["demo"],
+    body="[SECURITY REPORT] Blocked 17 unauthorized login attempts targeting user @root. No key compromises detected."
+)
+post10 = Post.objects.create(
+    author=users["alice"],
+    body="Just deployed a new IPFS pinning service node to persist chat attachments in a decentralized manner."
+)
+post11 = Post.objects.create(
+    author=users["bob"],
+    body="commit: c1db27e - feat: integrate feed backend app, run migrations, and seed initial feed posts"
+)
+post12 = Post.objects.create(
+    author=users["demo"],
+    body="[AI SUBSYSTEM] DeepSeek-R1 agent connected successfully. Ready to answer smart replies at /chats."
+)
+post13 = Post.objects.create(
+    author=users["alice"],
+    body="Status update: We have officially crossed 1,000 decentralized nodes in the Echo network! 🌐"
+)
+post14 = Post.objects.create(
+    author=users["bob"],
+    body="Cleaned up the CSS layout. No more double scrollbars or overflow issues. Thanks for the heads up!"
+)
+post15 = Post.objects.create(
+    author=users["demo"],
+    body="[WEATHER STATION] Local temperature: 22°C | Status: Partly Cloudy | Location: Server Room #4"
+)
+post16 = Post.objects.create(
+    author=users["alice"],
+    body="Friendly reminder: back up your private keys! Echo does not store them, so if you lose them, you lose access to your encrypted messages forever."
+)
 
 # Likes
 PostLike.objects.create(post=post1, user=users["bob"])
 PostLike.objects.create(post=post1, user=users["demo"])
 PostLike.objects.create(post=post2, user=users["alice"])
+PostLike.objects.create(post=post4, user=users["bob"])
+PostLike.objects.create(post=post6, user=users["alice"])
+PostLike.objects.create(post=post7, user=users["bob"])
+PostLike.objects.create(post=post7, user=users["demo"])
+PostLike.objects.create(post=post9, user=users["alice"])
+PostLike.objects.create(post=post11, user=users["alice"])
+PostLike.objects.create(post=post13, user=users["bob"])
+PostLike.objects.create(post=post13, user=users["demo"])
+PostLike.objects.create(post=post16, user=users["bob"])
 
 print("  seeded feed posts and likes")
 print(f"  created chat id={chat.id} between alice & bob with 1 welcome message")

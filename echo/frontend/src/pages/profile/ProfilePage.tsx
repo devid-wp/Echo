@@ -9,14 +9,18 @@ import type { User } from '@/types/domain'
 import styles from './ProfilePage.module.css'
 
 export function ProfilePage() {
-  const { id } = useParams<{ id: string }>()
+  const { id: paramId } = useParams<{ id: string }>()
   const me = useAuthStore((s) => s.user)
+  const id = paramId || me?.id
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    if (!id) return
+    if (!id) {
+      setLoading(false)
+      return
+    }
     let cancelled = false
     setLoading(true)
     fetchUser(id)
