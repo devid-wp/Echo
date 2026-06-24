@@ -6,7 +6,6 @@ import { FeedPage } from '@/pages/feed/FeedPage'
 import { ProfilePage } from '@/pages/profile/ProfilePage'
 import { EditProfilePage } from '@/pages/profile/EditProfilePage'
 import { ChatsPage } from '@/pages/chats/ChatsPage'
-import { ChatDetailPage } from '@/pages/chats/ChatDetailPage'
 import { ProtectedRoute } from './ProtectedRoute'
 import { PublicOnlyRoute } from './PublicOnlyRoute'
 import { QueryProvider } from './QueryProvider'
@@ -49,7 +48,7 @@ export function App() {
             path="/chats/:id"
             element={
               <ProtectedRoute>
-                <ChatDetailPage />
+                <ChatsPage />
               </ProtectedRoute>
             }
           />

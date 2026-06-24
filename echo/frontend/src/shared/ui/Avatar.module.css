@@ -13,6 +13,8 @@
   text-transform: uppercase;
   flex-shrink: 0;
   user-select: none;
+  overflow: hidden;
+  border-radius: 2px;
 }
 
 .sm { --size: 24px; font-size: var(--fs-12); }

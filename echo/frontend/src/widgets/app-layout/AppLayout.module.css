@@ -1,7 +1,8 @@
 .shell {
   display: grid;
-  grid-template-rows: var(--header-h) 1fr;
-  min-height: 100%;
+  grid-template-rows: var(--header-h) 1fr auto;
+  height: 100vh;
+  overflow: hidden;
   background: var(--bg);
 }
 
@@ -10,6 +11,14 @@
   max-width: var(--max-w);
   margin: 0 auto;
   padding: var(--s-6) var(--s-4) var(--s-12);
+  overflow-y: auto;
+}
+
+/* When chat split-view is inside, allow full width */
+.main:has(> [class*="shell"]) {
+  max-width: 100%;
+  padding: 0;
+  overflow: hidden;
 }
 
 .footer {
