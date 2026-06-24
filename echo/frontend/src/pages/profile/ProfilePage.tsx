@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { Avatar, Button, EmptyState } from '@/shared/ui'
-import { fetchUser } from '@/shared/api/endpoints'
+import { fetchUser, fetchMe } from '@/shared/api/endpoints'
 import { ApiError } from '@/shared/api/client'
 import { useAuthStore } from '@/store/auth'
 import { ROUTES } from '@/shared/config/env'
@@ -11,31 +11,36 @@ import styles from './ProfilePage.module.css'
 export function ProfilePage() {
   const { id: paramId } = useParams<{ id: string }>()
   const me = useAuthStore((s) => s.user)
-  const id = paramId || me?.id
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    if (!id) {
-      setLoading(false)
-      return
-    }
+    // Determine if we are viewing our own profile.
+    const isMe = !paramId || paramId === 'me' || paramId === me?.id
+
     let cancelled = false
     setLoading(true)
-    fetchUser(id)
+
+    const request = isMe ? fetchMe() : fetchUser(paramId!)
+
+    request
       .then((u) => {
         if (cancelled) return
         setUser(u)
         setError(null)
+        if (isMe) {
+          useAuthStore.getState().setUser(u)
+        }
       })
       .catch((e) => {
         if (cancelled) return
         setError(e instanceof ApiError ? e.message : 'failed to load profile')
       })
       .finally(() => !cancelled && setLoading(false))
+
     return () => { cancelled = true }
-  }, [id])
+  }, [paramId, me?.id])
 
   if (loading) {
     return <EmptyState glyph="· · ·" title="loading profile" />
