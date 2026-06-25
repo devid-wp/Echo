@@ -390,12 +390,38 @@ types/domain.ts (типизированный результат)
 
 ### Frontend
 
-| Команда            | Что делает                                  |
-|--------------------|---------------------------------------------|
-| `npm run dev`      | Vite dev-сервер (HMR) на `:5173`            |
-| `npm run build`    | `tsc -b && vite build` → `dist/`            |
-| `npm run preview`  | Локальный просмотр production-бандла        |
-| `npm run lint`     | ESLint по `eslint.config.js`               |
+| Команда                 | Что делает                                                |
+|-------------------------|-----------------------------------------------------------|
+| `npm run dev`           | Vite dev-сервер (HMR) на `:5173`                          |
+| `npm run build`         | `tsc -b && vite build` → `dist/`                          |
+| `npm run preview`       | Локальный просмотр production-бандла                      |
+| `npm run lint`          | ESLint по `eslint.config.js`                              |
+| `npm run test`          | Vitest — unit/integration тесты (headless, single-run)     |
+| `npm run test:watch`    | Vitest в watch-режиме                                     |
+| `npm run test:coverage` | Vitest + v8 coverage                                      |
+
+### E2E (Playwright)
+
+Полный набор end-to-end сценариев через реальный Django + Vite. Поднимает оба сервера сам, прогоняет три viewport'а (desktop 1280×800, Pixel 5, iPhone SE), снимает скриншоты для визуальной проверки.
+
+| Команда                    | Что делает                                              |
+|----------------------------|---------------------------------------------------------|
+| `npm run e2e`              | Прогон всех spec'ов по трём проектам                    |
+| `npm run e2e:ui`           | То же в UI-режиме (headed + трейсинг)                   |
+| `npm run e2e:install`      | Скачать браузеры (chromium + webkit; ~250MB, единоразово) |
+
+Требования: seed уже выполнен (`python scripts/seed_test_data.py` из `echo/`). Django и Vite стартуют автоматически через `webServer` в `playwright.config.ts`; если серверы уже подняты вручную — Playwright переиспользует их.
+
+Структура:
+
+```
+echo/frontend/e2e/
+├── fixtures.ts          # TEST_USERS, login/logout helpers, authedPage fixture
+├── auth.spec.ts         # login + register + logout + protected route
+├── feed.spec.ts         # publish, like, empty/error states
+├── chats.spec.ts        # chat list (desktop) + composer (все viewport)
+└── responsive.spec.ts   # viewport meta, TabBar/Navbar visibility, screenshots
+```
 
 ---
 
