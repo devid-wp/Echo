@@ -1,277 +1,448 @@
-# Echo frontend: 1.1–1.10 + 2.1
+# Echo: тесты + мобильная адаптация
 
-## Context
+## Контекст
 
-Фронтенд `echo/frontend` сейчас — крепко собранное, но всё ещё «болталoчное» SPA: хардкод-токены только под тёмную тему, нет PWA-манифеста, на `loading` показывается «empty» (`EmptyState`), лайк мутирует массив без сервера, при 401 ничего не происходит, `useAuthStore.status` объявлен но не выставляется, фид игнорирует `nextCursor`, нет горячих клавиш, нет share, нет `<noscript>`-фолбеков. Слой данных — `useState`+`useEffect`+`useRef` в каждой странице, что при росте превратится в боль.
+В проекте `C:\Users\galas\OneDrive\Desktop\Echo` сейчас **0% покрытия тестами**:
+- Фронт (`echo/frontend` — Vite+React 19+TS): ни `vitest`, ни `jest`, ни RTL в `package.json`; ни одного `*.test.*` файла.
+- Бэк (`echo/` — Django 6 + DRF + Channels): есть только `users/tests.py` с 3 кейсами на `django.test.TestCase` (не pytest), `chats/feed/ai/core` — пустые `tests.py`. `pytest`/`pytest-django`/`factory_boy` не установлены.
+- E2E: ничего нет (Playwright не инициализирован).
 
-Цель этой итерации — за один проход прокачать пользовательский опыт (темы, PWA, скелетоны, пагинация, лайки, рекавери 401, шорткаты, share, корректный loading) и заложить data-слой, на который ляжет всё остальное (комменты, поиск, нотисы).
+Параллельно: фронт **уже адаптивен** (viewport-fit=cover, таб-бар ≤720px, safe-area-inset, split-view чата ломается в 1 колонку ≤700px), но не по классическому mobile-first (нет `min-width` брейкпоинтов для контента, нет touch-оптимизаций). Телефон/SMS, PWA, native-обёртка **отложены** пользователем (сегодня сдача).
+
+Цель этой итерации — за один проход:
+1. Поднять **инфраструктуру трёх уровней** тестов (Vitest+RTL, pytest, Playwright).
+2. Покрыть **critical path** на бэке (auth + chats + feed), **core+UI+формы** на фронте, **E2E-сценарии** на обоих основных viewport'ах (desktop + mobile 360×640) с CSS-чеками адаптивности.
 
 Принципы:
-- Не трогаем бекенд и MSW-моки (по выбору пользователя).
-- Используем уже существующие паттерны: zustand+persist, zod, `useWebSocket`, `ApiError`, design-tokens.
-- Сохраняем FSD-layout (`app/widgets/features/shared`).
-- Один TanStack Query пакет — и им заменяем всю ручную работу с эффектами на страницах.
-- Каждое изменение — маленький, ревью-пригодный шаг. В конце — зелёный `npm run build` + `npm run lint`.
+- Минимум новых зависимостей, всё стандартное.
+- Co-located тесты на фронте (`*.test.tsx` рядом с компонентом).
+- Backend — pytest с фабриками и фикстурами.
+- Не трогаем существующий `users/tests.py` (он остаётся для обратной совместимости), но расширяем через pytest.
+- Всё в работе должно быть **зелёным** к концу: `npm test`, `pytest`, `npx playwright test`.
 
 ## Зависимости
 
-В `echo/frontend/package.json`:
-- prod: `@tanstack/react-query@^5` (текущая стабильная линейка).
-- prod: `@tanstack/react-query-devtools@^5` — только в dev (через `import.meta.env.DEV`).
+**Frontend** (`echo/frontend/package.json`):
+- dev: `vitest@^2` (совместим с Vite 8), `@vitest/coverage-v8@^2`.
+- dev: `@testing-library/react@^16`, `@testing-library/dom@^10`, `@testing-library/jest-dom@^6`, `@testing-library/user-event@^14`.
+- dev: `jsdom@^25` (окружение для Vitest).
+- dev (позже, для E2E): `@playwright/test@^1.49`.
 
-Никаких других новых пакетов.
+**Backend** (`echo/requirements.txt`):
+- dev/test: `pytest>=8`, `pytest-django>=4.8`, `pytest-asyncio>=0.24` (для Channels consumers).
+- dev/test: `factory-boy>=3.3`, `faker>=25`.
+- dev/test: `pytest-mock>=3.14`, `pytest-cov>=5` (опционально).
 
 ---
 
-## План изменений (по файлам)
+## План изменений (по слоям)
 
-### 1. Bootstrap и data-слой (TanStack Query)
+### Фаза 1 — Frontend: Vitest + RTL
 
-**`echo/frontend/src/app/QueryProvider.tsx` (новый)**
-- Создаёт `QueryClient` с `staleTime: 30_000`, `retry: 1`, `refetchOnWindowFocus: true`.
-- Оборачивает `<App/>`, подключает `ReactQueryDevtools` под `import.meta.env.DEV`.
+#### 1.1. Инфраструктура
 
-**`echo/frontend/src/main.tsx`** — изменить
-- После `hydrateAuth()` дополнительно `await import('@/app/QueryProvider')` не нужно — он импортируется синхронно в `App.tsx`.
-- Никакой другой логики не меняем.
+**`echo/frontend/package.json`** — изменить
+- В `devDependencies` добавить пакеты из списка выше.
+- В `scripts`:
+  - `"test": "vitest run"`
+  - `"test:watch": "vitest"`
+  - `"test:coverage": "vitest run --coverage"`
+  - `"test:ui": "vitest --ui"`
 
-**`echo/frontend/src/app/App.tsx`** — изменить
-- Обернуть `<BrowserRouter>` в `<QueryProvider>`.
+**`echo/frontend/vitest.config.ts` (новый)**
+- Расширяет `vite.config.ts` (через `mergeConfig`), добавляет блок `test:`:
+  - `environment: 'jsdom'`
+  - `globals: true` (но типы импортируем из `vitest/globals` явно)
+  - `setupFiles: ['./src/test/setup.ts']`
+  - `css: false` (CSS-модули не нужны в тестах UI; где критично — мокаем className)
+  - `coverage: { provider: 'v8', reporter: ['text', 'html'], include: ['src/**/*.{ts,tsx}'], exclude: ['src/**/*.test.{ts,tsx}', 'src/test/**', 'src/main.tsx', 'src/types/**'] }`
+  - `resolve.alias` — копия из `vite.config.ts` (`@` → `./src`).
 
-### 2. Темы (1.1)
+**`echo/frontend/src/test/setup.ts` (новый)**
+- `import '@testing-library/jest-dom/vitest'`.
+- `afterEach(() => cleanup())` — автоматический размонтаж RTL.
+- `vi.mock('zustand')` НЕ делаем — у нас стейт тестируется через рендер.
+- Мок `matchMedia` (для `prefers-color-scheme`): `Object.defineProperty(window, 'matchMedia', { value: vi.fn().mockImplementation(...) })`.
+- Мок `IntersectionObserver` (для sentinel в FeedPage, если дойдёт).
+- `vi.stubEnv('VITE_API_BASE_URL', '')` (чтобы api-клиент ходил на same-origin, MSW перехватит).
 
-**`echo/frontend/src/styles/global.css`** — изменить
-- Сейчас токены заданы жёстко в `:root`. Заменяем на:
-  - `:root` — тёмная тема (текущие значения), но `--bg-soft: #101413`, `--bg: #0b0d0c` и т.д.
-  - `:root[data-theme="light"]` — светлая (инверсия палитры: `--bg: #f6f8f6`, `--bg-soft: #ffffff`, `--bg-sunk: #ecefee`, `--paper: #0b0d0c`, `--paper-ink: #e8efe9`, `--line: #dbe2dc`, `--line-soft: #e8ede9`, `--fg: #0b0d0c`, `--fg-dim: #46514a`, `--fg-mute: #6f7a72`, `--fg-faint: #c0c8c2`, `--accent: #1f7a3a`, `--accent-2: #16622e`, `--warn: #8a6a17`, `--danger: #b13030`).
-  - `body` background-image в светлой теме — уменьшить opacity зерна до 0.
-  - Добавить `<meta name="color-scheme" content="dark light">` мы не можем в CSS — это в HTML.
+**`echo/frontend/src/test/msw-server.ts` (новый)**
+- Импорт `setupServer` из `msw/node` (входит в `msw@^2`).
+- Экспорт `server` — синглтон для всех тестов. Хендлеры прокидываются из тестов индивидуально.
 
-**`echo/frontend/index.html`** — изменить
-- `<meta name="color-scheme" content="dark light">` вместо `dark`.
-- Подключить `public/manifest.webmanifest` через `<link rel="manifest">` (см. п. 3).
-- Добавить `theme-color` под обе темы через `<meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0b0d0c">` + светлый вариант.
+**`echo/frontend/src/test/render.tsx` (новый)**
+- `renderWithProviders(ui, options)` — оборачивает в `MemoryRouter` (роутер для страниц) + `QueryClient`-provider с дефолтами (`staleTime: 0`, `retry: false`).
+- Для store-тестов — отдельно `renderWithAuth(ui, { user, token })` через `useAuthStore.setState`.
 
-**`echo/frontend/src/store/theme.ts` (новый)**
-- zustand-стор с `persist` в `localStorage` (`name: 'echo.theme'`).
-- Состояние: `theme: 'dark' | 'light'`, методы `set(t)`, `toggle()`, `apply()`.
-- На init: если в storage нет — читаем `window.matchMedia('(prefers-color-scheme: light)')` и пишем в стор; подписываемся на изменения системной темы только если пользователь явно не выбирал (отдельный флаг `userOverride`).
-- Метод `apply()` проставляет `document.documentElement.dataset.theme`.
+#### 1.2. Co-located unit-тесты
 
-**`echo/frontend/src/shared/lib/useTheme.ts` (новый)**
-- Удобный хук: `const { theme, toggle } = useTheme()`. Подписывается на стор и возвращает актуальное значение.
+**`src/shared/lib/time.test.ts` (новый)**
+- `timeAgo` — граничные кейсы: <60s → "now", <60min → "Nm", <24h → "Nh", ≥24h → дата.
+- `clamp` — ниже минимума, в диапазоне, выше максимума.
 
-**`echo/frontend/src/main.tsx`** — изменить
-- Перед `bootstrap` (внутри неё) — `import { useThemeStore } from '@/store/theme'; useThemeStore.getState().apply();` — чтобы избежать flash of unstyled content (FOUC) при перезагрузке.
+**`src/shared/api/user.test.ts` (новый)**
+- `normalizeApiUser` — все ветки: null avatar/online_status, строковый возраст, числовой birth_date, отсутствующие поля.
 
-**`echo/frontend/src/widgets/navbar/Navbar.tsx`** — изменить
-- В блок `.right` добавить `<Button size="sm" variant="ghost" onClick={toggle} aria-label="toggle theme">` с глифом `◐` (или `[D]`/`[L]` в ASCII-стиле).
-- Скрывать кнопку на мобиле через `display: none` в `Navbar.module.css` (если места нет) — но судя по layout, поместится.
+**`src/shared/model/schemas.test.ts` (новый)**
+- Zod-схемы: позитивные/негативные кейсы `loginPayloadSchema`, `registerPayloadSchema`, `postSchema`, `chatSchema`, `messageSchema`. Проверяем кастомные сообщения об ошибках.
 
-### 3. PWA (1.2)
+**`src/shared/api/client.test.ts` (новый)**
+- `ApiError` конструктор, `mapError` для 401/409/500/network.
+- `setAuthToken` — добавляет/чистит `Authorization: Bearer ...`.
 
-**`echo/frontend/public/manifest.webmanifest` (новый)**
-- `name: "Echo"`, `short_name: "echo"`, `start_url: "/feed"`, `scope: "/"`, `display: "standalone"`, `background_color: "#0b0d0c"`, `theme_color: "#0b0d0c"`, `icons: [{ src: "/icon-192.png", sizes: "192x192", type: "image/png" }, { src: "/icon-512.png", sizes: "512x512", type: "image/png", purpose: "any maskable" }]`.
+**`src/store/auth.test.ts` (новый)**
+- `useAuthStore` — `setSession`, `clear`, `setUser`, `setStatus`.
+- Persist: `localStorage.getItem('echo.auth')` после `setSession` содержит корректный JSON.
+- Axios-синхронизация: после `setSession` — `axios.defaults.headers.common.Authorization` === `Bearer ${token}`; после `clear` — удалён.
 
-**`echo/frontend/public/icon-192.png`, `icon-512.png` (новые)**
-- Минимальные PNG-плейсхолдеры (квадрат 1×1, или простой моно-глиф на тёмном фоне). Чтобы не плодить ассеты, сделаю base64-инициализацию inline в `vite.config.ts` через `emitFile`, либо сгенерирую минимальный PNG скриптом. Альтернатива — `<link rel="icon" href="data:image/svg+xml,...">` в `index.html` для favicon и `purpose: any` без отдельных иконок (manifest это позволяет, если в `icons` указан только `purpose: any`).
+**`src/app/ProtectedRoute.test.tsx` + `PublicOnlyRoute.test.tsx` (новые)**
+- Protected: `authed=true` → рендерит children; `guest` → редирект на `/login`; `loading` (без user при наличии токена) → спиннер/EmptyState.
+- PublicOnly: обратная логика.
 
-**Решение по иконкам:** создам один SVG-favicon (`public/favicon.svg`) с глифом `~` в цвете `--accent`, пропишу `<link rel="icon" type="image/svg+xml" href="/favicon.svg">` в `index.html`. В `manifest.webmanifest` в `icons` укажу только `src: "/favicon.svg", sizes: "any", type: "image/svg+xml", purpose: "any"` — этого достаточно для PWA-install (PWA-install примет svg).
+**`src/shared/ui/Button.test.tsx` (новый)**
+- variants (`primary/secondary/ghost`), sizes (`sm/md/lg`), `loading` показывает спиннер и блокирует клики, `disabled`, `prefix/suffix`, `onClick` callback, `type="submit"` по умолчанию.
 
-**`echo/frontend/index.html`** — изменить
-- Добавить `<link rel="manifest" href="/manifest.webmanifest">`, `<link rel="icon" type="image/svg+xml" href="/favicon.svg">`.
+**`src/shared/ui/Field.test.tsx` (новый)**
+- `label`, `hint`, `error`, `aria-invalid` и `aria-describedby` корректно пробрасываются.
 
-**`echo/frontend/public/favicon.svg` (новый)** — глиф `~` 32×32, `fill: #7ee787`, `font-family: monospace`.
+**`src/shared/ui/Card.test.tsx` (новый)**
+- `head`, `foot`, `children` — рендерятся, есть дефолтный `as="section"`.
 
-### 4. Skeleton и Error/Loading/Empty states (1.3, 4.2, 4.6)
+**`src/shared/ui/Avatar.test.tsx` (новый)**
+- Глиф из `handle` (первая буква, upper-case), `size` применяется, `online` индикатор.
 
-**`echo/frontend/src/shared/ui/Skeleton.tsx` + `Skeleton.module.css` (новые)**
-- `<Skeleton width="..." height="..."/>` — блочный плейсхолдер с мигающим фоном (анимация `skeleton-pulse`).
-- `width`/`height` — числа (px) или строки.
+**`src/features/auth-by-email/AuthForms.test.tsx` (новый)**
+- `LoginForm`:
+  - рендерит поля email-or-handle + password,
+  - submit с пустыми полями → HTML5-валидация / zod-ошибка в `errors.root`,
+  - submit с валидными → вызывает `useLoginSubmit` → успех → `useAuthStore.setSession` + `navigate('/chats')`.
+  - ошибка 409 → текст в `errors.root`.
+- `RegisterForm`: аналогично, проверяем все 4 поля, успех → `setSession` + `navigate`.
+- Используем MSW server для мока `/api/auth/login` и `/api/auth/register`.
 
-**`echo/frontend/src/shared/ui/ErrorState.tsx` + `ErrorState.module.css` (новые)**
-- API: `{ glyph = "!!", title, body?, onRetry? }`.
-- Визуально — `.frame` с `--danger` акцентом, в ASCII-стиле.
+**`src/features/post-card/PostCard.test.tsx` (новый)**
+- Рендер автора, времени, `body`.
+- `onLike` callback, `aria-pressed` тогглится.
+- Кнопка share: `navigator.share` mock, fallback на `navigator.clipboard.writeText`.
 
-**`echo/frontend/src/shared/ui/index.ts`** — изменить
-- Экспортировать `Skeleton`, `ErrorState`.
+**`src/components/ThemeToggle.test.tsx` (новый)**
+- Клик меняет `document.documentElement.dataset.theme` (light ↔ dark), `localStorage` обновляется.
 
-**`echo/frontend/src/pages/feed/FeedPage.tsx`** — изменить
-- Заменить inline-блок `<div className="frame">! {error}</div>` на `<ErrorState title="feed load failed" body={error} onRetry={refetch} />`.
-- Скелетоны в `loading` (см. п. 5) — будут идти через `useFeed`.
+**`src/components/TypingIndicator.test.tsx` (новый)**
+- При `typing=false` — `null`. При `typing=true` — три дотса.
 
-**`echo/frontend/src/pages/profile/ProfilePage.tsx`** — изменить
-- Аналогично: `<Skeleton ... />` + `<ErrorState />` + `useUser(id)`.
+**`src/shared/lib/useWebSocket.test.ts` (новый)**
+- `vi.stubGlobal('WebSocket', MockWS)` — `MockWS` с эмуляцией open/message/close.
+- `VITE_WS_URL=''` → status всегда `'idle'`, send no-op.
+- С `VITE_WS_URL=...` → `'connecting'` → `'open'` → message handler вызывается → close → `'closed'` → reconnect с backoff.
+- При `document.hidden=true` — пауза (через `Object.defineProperty(document, 'hidden', { value: true })`).
 
-### 5. Data-слой: hooks на TanStack Query (2.1)
+#### 1.3. Page-интеграции (минимум, чтобы покрыть основные экраны)
 
-**`echo/frontend/src/shared/api/keys.ts` (новый)**
-- Централизованные query-ключи: `keys.feed.list()`, `keys.feed.detail(id)`, `keys.me()`, `keys.user(id)`.
+**`src/pages/login/LoginPage.test.tsx` (новый)**
+- Полный flow: ввести email+пароль → клик submit → POST `/api/auth/login` (MSW) → редирект на `/chats`.
+- Рендерится в `MemoryRouter(['/login'])`.
 
-**`echo/frontend/src/shared/api/queries.ts` (новый)**
-- `useMe()` — `useQuery({ queryKey: keys.me(), queryFn: fetchMe, enabled: hasToken, retry: false })`.
-- `useUser(id)` — `useQuery({ queryKey: keys.user(id), queryFn: () => fetchUser(id), enabled: Boolean(id) })`.
-- `useFeed()` — `useInfiniteQuery({ queryKey: keys.feed.list(), queryFn: ({ pageParam }) => fetchFeed(pageParam), initialPageParam: null, getNextPageParam: (last) => last.nextCursor })`.
-- `useCreatePost()` — `useMutation({ mutationFn: createPost, onSuccess: (post) => qc.setQueryData(keys.feed.list(), ...) })`. Оптимистично вставляет в начало первой страницы.
-- `useToggleLike()` — `useMutation({ mutationFn: (postId) => likePost(postId) })`. Оптимистично апдейтит `keys.feed.list()` и `keys.user(id)`. На ошибке — откат.
+**`src/pages/feed/FeedPage.test.tsx` (новый)**
+- Mock `/api/feed` → 3 поста. Проверить рендер заголовков, кнопку like (оптимистично +1), индикатор loading→success.
 
-**`echo/frontend/src/shared/api/endpoints.ts`** — изменить
-- Добавить `likePost(id)`, `unlikePost(id)` (вызывают `POST/DELETE /api/feed/:id/like` — бек может ответить 404 на DELETE, окей, мы ловим в моке позже). Для совместимости с текущим MSW-контрактом (мок сейчас не обрабатывает эти роуты) — `likePost` падает в catch с `ApiError`, а наш `useToggleLike` это нормально обработает. Документируем: моки не покрывают лайк, в prod — ок.
-- Импортируем `useQueryClient` из `@tanstack/react-query` локально внутри `useCreatePost`/`useToggleLike` — НЕ top-level.
+**`src/pages/profile/ProfilePage.test.tsx` (новый)**
+- Mock `/api/users/<id>` → отрендерить displayName, handle, bio.
 
-**`echo/frontend/src/pages/feed/FeedPage.tsx`** — переписать
-- Полностью на хуки: `const me = useMe(); const feed = useFeed(); const create = useCreatePost(); const like = useToggleLike();`.
-- WS-инжекции: `useEffect` слушает `feed.snapshot`/`post.created` и через `qc.setQueryData` обновляет `keys.feed.list()`. Это правильный путь — query остаётся source of truth, WS его дополняет.
-- `IntersectionObserver` на «sentinel» `<li>` внизу списка, вызывает `feed.fetchNextPage()`. Loader-строка во время `isFetchingNextPage`.
-- `<ErrorState onRetry={() => feed.refetch()} />` на `isError`.
-- Скелетоны 4 штуки на `isLoading && !feed.data`.
+---
 
-**`echo/frontend/src/pages/profile/ProfilePage.tsx`** — переписать
-- На `useUser(id)`.
-- `<ErrorState/>` / `<Skeleton/>` / данные.
-- Кнопка follow остаётся stub (см. план 3.7) — но иконка/состояние «pending» уже через `useMutation`.
+### Фаза 2 — Backend: pytest + factory_boy
 
-**`echo/frontend/src/app/ProtectedRoute.tsx`** — изменить
-- Использовать `useMe()`: пока `isLoading` — рендерим `<EmptyState title="..." />`; `isError` — редирект на login; success — children.
+#### 2.1. Инфраструктура
 
-### 6. Оптимистичный лайк (1.5) + 401-обработка (1.6) + useAuthStatus (1.7)
+**`echo/requirements-dev.txt` (новый)**
+- Содержит пакеты для тестов: `pytest`, `pytest-django`, `pytest-asyncio`, `factory-boy`, `faker`, `pytest-mock`, `pytest-cov`.
 
-**`echo/frontend/src/shared/api/client.ts`** — изменить
-- В `api.interceptors.response`:
-  - На 401 (кроме `/api/auth/login`, `/api/auth/register`) → импортировать `useAuthStore`, вызвать `clear()`, пробросить ошибку дальше. (Делаем lazy-import чтобы избежать цикла.)
-  - Возвращать `Promise.reject` как сейчас.
+**`echo/pytest.ini` (новый)** или секция в `pyproject.toml`:
+```
+[pytest]
+DJANGO_SETTINGS_MODULE = echo.settings
+python_files = test_*.py
+python_classes = Test*
+python_functions = test_*
+addopts = -ra --strict-markers --reuse-db
+asyncio_mode = auto
+markers =
+    slow: marks tests as slow
+    websocket: tests for channels consumers
+```
 
-**`echo/frontend/src/store/auth.ts`** — изменить
-- Добавить хелпер `getStatus()`: `'authed'` если `token && user`, `'guest'` если `!token`, `'loading'` если `token && !user`.
-- Не вводим отдельный side-effect в `setSession` — статус считается на лету.
+**`echo/conftest.py` (новый)**
+- `pytest_plugins = ['pytest_django']` (если конфиг в `pytest.ini` не подхватывает).
+- `api_client` — fixture, возвращает `rest_framework.test.APIClient`.
+- `auth_client` — fixture, создаёт пользователя через фабрику, логинит, возвращает `APIClient` с JWT-токеном.
+- `make_user` — factory_boy `UserFactory` (`django_get_or_create` не нужен, у нас username).
+- `make_chat`, `make_message`, `make_post` — фабрики для других моделей.
 
-**`echo/frontend/src/shared/lib/useAuthStatus.ts` (новый)**
-- `useAuthStatus()` — возвращает `{ status: 'loading' | 'authed' | 'guest', user, isHydrated }`. `isHydrated` нужен, потому что `persist` rehydrates асинхронно, и на первом рендере мы ещё не знаем, что в storage.
-- Реализация: внутри хука подписываемся на `useAuthStore.persist.onFinishHydration` (zustand v5 API), и до того как hydration завершена — `status: 'loading'`.
+**`echo/users/factories.py` (новый)**
+- `UserFactory` (factory_boy) с реалистичными дефолтами через `Faker`: `handle`, `displayName`, `email`, `password` (post-generation).
 
-**`echo/frontend/src/main.tsx`** — изменить
-- Дождаться hydration auth перед `createRoot.render()`. С `persist` это `await useAuthStore.persist.rehydrate()`. Если token есть — дёргаем `useMe()` сразу (через `qc.prefetchQuery(keys.me(), fetchMe)`), но не блокируем UI.
+**`echo/chats/factories.py` (новый)**
+- `ChatFactory` (private/group), `MessageFactory` с `chat`, `sender`, `text`.
 
-**`echo/frontend/src/app/ProtectedRoute.tsx`** — изменить
-- Использовать `useMe()` + `useAuthStatus()`. Пока `!isHydrated || isLoading` — спиннер/`<EmptyState title="booting…">`. На 401 — `clear()` уже сработал в интерсепторе, редирект.
+**`echo/feed/factories.py` (новый)**
+- `PostFactory`, `PostLikeFactory`.
 
-### 7. Share (1.8) + шорткаты (1.9) + aria-live для WS (1.10)
+#### 2.2. Critical path tests (минимум)
 
-**`echo/frontend/src/features/post-card/PostCard.tsx`** — изменить
-- В `foot` добавить кнопку `<button onClick={onShare}>`. `onShare` принимает `Post`, делает `navigator.share({ title, text, url }) ?? navigator.clipboard.writeText(url)`. Внутри карточки — простой try/catch.
+**`echo/users/tests/test_auth.py` (новый)**
+- `test_register_success` — port из существующего `users/tests.py`, но на pytest + APIClient.
+- `test_register_duplicate_handle` → 409 + `code='handle_taken'`.
+- `test_register_duplicate_email` → 409 + `code='email_taken'`.
+- `test_register_missing_displayName` → 400 + `code='validation'`.
+- `test_login_with_email` → 200 + access token.
+- `test_login_with_username` → 200 + access token.
+- `test_login_wrong_password` → 401 + `code='unauthorized'`.
+- `test_login_nonexistent_user` → 401.
+- `test_me_unauthenticated` → 401.
+- `test_me_authenticated` → 200 + полный профиль.
+- `test_logout` → 200.
+- `test_avatar_upload` — multipart с Pillow-генерированным PNG.
+- `test_avatar_invalid_file` → 400.
 
-**`echo/frontend/src/shared/lib/useHotkeys.ts` (новый)**
-- `useHotkeys(map: Record<string, (e: KeyboardEvent) => void>, options?: { enabled?: boolean })`. Слушает `keydown` на `document`, игнорирует если `e.target` в `<input>/<textarea>/[contenteditable]`, уважает `prefers-reduced-motion` (опционально), корректно снимается в cleanup.
+**`echo/users/tests/test_serializers.py` (новый)**
+- `UserSerializer` — все поля + `age` вычисляется из `birth_date`.
+- `UserPublicKeySerializer` — принимает/отдаёт PEM.
+- `UserUpdateSerializer` — `handle` / `email` taken, валидация `birth_date` (не в будущем).
 
-**`echo/frontend/src/widgets/app-layout/AppLayout.tsx`** — изменить
-- Подключить `useHotkeys` с маппингом:
-  - `j`/`k` — листать список постов в `FeedPage` (через custom event `feed:next` / `feed:prev`).
-  - `n` — фокус на `<textarea>` композера (через `document.querySelector('textarea')`).
-  - `/` — фокус на search-input (пока нет — noop).
-  - `?` — открыть `<dialog>` с шорткат-чит-шитом.
+**`echo/chats/tests/test_chats.py` (новый)**
+- `test_create_private_chat` — POST `/api/chats` с `participants=[other_user.id]` → 201, type='private'.
+- `test_create_group_chat` — POST `/api/chats/groups` с `name` + `participants` → 201.
+- `test_list_user_chats` — только чаты, где пользователь участник.
+- `test_get_chat_detail` — проверка `participants`, `last_message`.
+- `test_unauthorized_user_cannot_access_chat` → 403.
+- `test_send_message` — POST `/api/chats/<id>/messages` → 201, проверка `sender=current_user`.
+- `test_send_message_to_unauthorized_chat` → 403.
+- `test_mark_messages_read` — POST `/api/chats/<id>/messages/read` → обновляет `is_read`/`read_at`.
+- `test_upload_file` — multipart с Pillow PNG.
+- `test_upload_file_too_large` → 400.
 
-**`echo/frontend/src/features/hotkeys-cheatsheet/Cheatsheet.tsx` + `.module.css` (новые)**
-- `<dialog>` с таблицей шорткатов. Открывается по `?`, закрывается по `Esc` или клику вне. Без `react-router` — используем `showModal()`/`close()`.
+**`echo/feed/tests/test_feed.py` (новый)**
+- `test_list_posts` — GET `/api/feed` → посты в обратном хронологическом порядке.
+- `test_create_post` — POST `/api/feed` → 201, автор = current user.
+- `test_like_post` — POST `/api/feed/<id>/like` → `likedByMe=true`, `likes+1`.
+- `test_unlike_post` — повторный POST → `likedByMe=false`, `likes` обратно.
+- `test_cannot_like_nonexistent_post` → 404.
+- `test_post_serializer_camelCase` — проверка ключей `createdAt`, `likedByMe`, `author`.
 
-**`echo/frontend/src/pages/feed/FeedPage.tsx`** — изменить
-- На `post.created` через WS показывать тонкий `<aside role="status" aria-live="polite">` с текстом `~ new post: @handle` на 2 секунды (CSS-анимация, без react-transition).
+**`echo/ai/tests/test_views.py` (новый)**
+- `test_smart_reply_unauthenticated` → 401.
+- `test_smart_reply_no_api_key` (DEEPSEEK_API_KEY='') → 503.
+- `test_smart_reply_success` — мок `requests.post` через `pytest-mock` → 200 + проверка payload.
+- `test_moderate_toxic` — мок ответа DeepSeek с `toxic=true` → возвращается `isToxic=true`.
+- `test_translate` — мок + проверка переданного `target_lang`.
+- `test_summary_chat_not_found` → 404.
+
+**`echo/chats/tests/test_websocket.py` (новый)** (с маркером `websocket`)
+- `test_connect_unauthenticated` — `WebsocketCommunicator` без токена → close.
+- `test_connect_authenticated` — `WebsocketCommunicator` с JWT → accept.
+- `test_send_message_broadcasts` — `chat:send` → `chat:message` event другим участникам.
+- `test_send_message_not_a_participant` → close с error code.
+- Использовать `pytest-asyncio` (auto mode).
+
+#### 2.3. Модели (smoke)
+
+**`echo/users/tests/test_models.py` (новый)**
+- `User.age` корректно из `birth_date`.
+- `User.age` без `birth_date` → `None`.
+- `User.short_bio` — обрезка до 80 символов.
+
+**`echo/chats/tests/test_models.py` (новый)**
+- `Chat.get_last_message` — последнее по дате.
+- `Message.mark_as_read` → `is_read=True`, `read_at` не None.
+- `Chat.get_unread_count(user)` — корректно считает.
+
+**`echo/feed/tests/test_models.py` (новый)**
+- `PostLike` unique_together защищает от дублей (повторный like → IntegrityError).
+
+---
+
+### Фаза 3 — E2E: Playwright + мобильная адаптация
+
+#### 3.1. Инфраструктура
+
+**`echo/frontend/package.json`** — изменить
+- dev: `@playwright/test@^1.49`.
+- scripts: `"e2e": "playwright test"`, `"e2e:ui": "playwright test --ui"`.
+
+**`echo/frontend/playwright.config.ts` (новый)**
+- `testDir: './e2e'`.
+- `timeout: 30_000`.
+- `use: { baseURL: 'http://localhost:5173', trace: 'on-first-retry', screenshot: 'only-on-failure' }`.
+- `webServer` — два процесса: backend (Django runserver :8000) + frontend (vite preview :4173 после build). **Лучше: одиночный `npm run preview` + ручной запуск Django** (быстрее для локальной разработки). Параметризуем через `BASE_URL` env.
+- `projects`:
+  - `{ name: 'desktop-chromium', use: devices['Desktop Chrome'] }`
+  - `{ name: 'mobile-pixel', use: { ...devices['Pixel 7'], viewport: { width: 360, height: 640 } } }` (явно mobile-viewport)
+  - `{ name: 'mobile-iphone-se', use: devices['iPhone SE'] }` (узкий 375×667)
+- `expect: { toMatchSnapshot: { maxDiffPixels: 50 } }` (для CSS-чеков).
+
+#### 3.2. E2E-сценарии
+
+**`echo/frontend/e2e/auth.spec.ts` (новый)**
+- Desktop: открыть `/login`, заполнить `seed_alice / testpass123` (используем `alice` из `scripts/seed_test_data.py`), submit → ожидаем редирект на `/chats` → видим сайдбар с чатами.
+- Mobile (Pixel 7): тот же сценарий — после логина ожидаем видимость `<nav class="tabbar">` (нижний таб-бар), отсутствие десктопного `<nav class="navbar">`.
+
+**`echo/frontend/e2e/feed.spec.ts` (новый)**
+- Логин как `alice` → переход на `/feed` → видим посты (минимум 1).
+- Создание поста: ввод в `<textarea>`, submit → новый пост в начале списка.
+- Лайк: клик по сердцу → счётчик `+1` (DOM-state).
+- Mobile: тот же flow + проверка, что композер в нижней части, не перекрывается таб-баром (визуально через скриншот-сравнение).
+
+**`echo/frontend/e2e/chats.spec.ts` (новый)**
+- Логин → переход на `/chats` → видим список чатов.
+- Клик по чату → справа (desktop) или на отдельном экране (mobile) появляется `ChatPanel`.
+- Отправка сообщения: ввести текст, Enter → сообщение в ленте.
+- Mobile split-view: на 360×640 — после клика по чату URL меняется на `/chats/<id>`, видим `ChatPanel` (sidebar скрыт — `display: none`).
+
+**`echo/frontend/e2e/responsive.spec.ts` (новый)** — **CSS-чеки адаптивности**
+- На `mobile-pixel` (`width: 360`):
+  - `expect(page.locator('nav.tabbar')).toBeVisible()`.
+  - `expect(page.locator('nav.navbar')).toBeHidden()`.
+  - `getComputedStyle(document.documentElement).getPropertyValue('--tabbar-h')` не пустая.
+  - В `<head>` есть `<meta name="viewport" ... viewport-fit=cover>`.
+  - Скриншот главной страницы (`/chats`) — сравниваем с базой (`e2e/snapshots/mobile-chats.png`).
+- На `desktop-chromium`:
+  - `expect(page.locator('nav.navbar')).toBeVisible()`.
+  - `expect(page.locator('nav.tabbar')).toBeHidden()`.
+  - Скриншот `/chats` — сравниваем с `e2e/snapshots/desktop-chats.png`.
+- На `mobile-iphone-se` (узкий viewport): проверить, что `LoginPage` (max-width: 420px) не вылезает за пределы, нет горизонтального скролла: `expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(375)`.
+
+**`echo/frontend/e2e/snapshots/` (новая папка)**
+- Базовые скриншоты: `mobile-chats.png`, `desktop-chats.png`, `mobile-login.png`.
 
 ---
 
 ## Сводка по файлам
 
-Новые:
-- `src/app/QueryProvider.tsx`
-- `src/store/theme.ts`
-- `src/shared/lib/useTheme.ts`
-- `src/shared/lib/useAuthStatus.ts`
-- `src/shared/lib/useHotkeys.ts`
-- `src/shared/api/keys.ts`
-- `src/shared/api/queries.ts`
-- `src/shared/ui/Skeleton.tsx` + `.module.css`
-- `src/shared/ui/ErrorState.tsx` + `.module.css`
-- `src/features/hotkeys-cheatsheet/Cheatsheet.tsx` + `.module.css`
-- `public/manifest.webmanifest`
-- `public/favicon.svg`
+**Новые (frontend):**
+- `vitest.config.ts`
+- `playwright.config.ts`
+- `src/test/setup.ts`
+- `src/test/msw-server.ts`
+- `src/test/render.tsx`
+- `src/shared/lib/time.test.ts`
+- `src/shared/api/user.test.ts`
+- `src/shared/api/client.test.ts`
+- `src/shared/model/schemas.test.ts`
+- `src/store/auth.test.ts`
+- `src/app/ProtectedRoute.test.tsx`
+- `src/app/PublicOnlyRoute.test.tsx`
+- `src/shared/ui/Button.test.tsx`
+- `src/shared/ui/Field.test.tsx`
+- `src/shared/ui/Card.test.tsx`
+- `src/shared/ui/Avatar.test.tsx`
+- `src/features/auth-by-email/AuthForms.test.tsx`
+- `src/features/post-card/PostCard.test.tsx`
+- `src/components/ThemeToggle.test.tsx`
+- `src/components/TypingIndicator.test.tsx`
+- `src/shared/lib/useWebSocket.test.ts`
+- `src/pages/login/LoginPage.test.tsx`
+- `src/pages/feed/FeedPage.test.tsx`
+- `src/pages/profile/ProfilePage.test.tsx`
+- `e2e/auth.spec.ts`
+- `e2e/feed.spec.ts`
+- `e2e/chats.spec.ts`
+- `e2e/responsive.spec.ts`
+- `e2e/snapshots/`
 
-Изменяемые:
-- `package.json` (+ `@tanstack/react-query`, + `@tanstack/react-query-devtools`)
-- `index.html` (color-scheme, manifest, favicon, theme-color)
-- `src/main.tsx` (await hydration, theme.apply)
-- `src/app/App.tsx` (обернуть в QueryProvider)
-- `src/app/ProtectedRoute.tsx` (useAuthStatus + useMe)
-- `src/styles/global.css` (темы)
-- `src/widgets/app-layout/AppLayout.tsx` (useHotkeys)
-- `src/widgets/navbar/Navbar.tsx` (кнопка темы)
-- `src/widgets/navbar/Navbar.module.css` (стиль кнопки)
-- `src/pages/feed/FeedPage.tsx` (TanStack + скелетоны + пагинация + лайк + WS aria-live)
-- `src/pages/feed/FeedPage.module.css` (sentinel, new-post flash)
-- `src/pages/profile/ProfilePage.tsx` (TanStack + ErrorState + Skeleton)
-- `src/store/auth.ts` (helpers)
-- `src/shared/api/client.ts` (401 handler)
-- `src/shared/api/endpoints.ts` (likePost/unlikePost)
-- `src/shared/ui/index.ts` (экспорты)
-- `src/features/post-card/PostCard.tsx` (share button)
+**Изменяемые (frontend):**
+- `package.json` (зависимости + scripts)
+- `vite.config.ts` (если vitest.config.ts не отдельный — расширить блок `test:`; ниже пойдём через отдельный файл)
+
+**Новые (backend):**
+- `pytest.ini`
+- `conftest.py`
+- `requirements-dev.txt`
+- `users/factories.py`
+- `users/tests/__init__.py` (пакет)
+- `users/tests/test_auth.py`
+- `users/tests/test_serializers.py`
+- `users/tests/test_models.py`
+- `chats/factories.py`
+- `chats/tests/__init__.py`
+- `chats/tests/test_chats.py`
+- `chats/tests/test_models.py`
+- `chats/tests/test_websocket.py`
+- `feed/factories.py`
+- `feed/tests/__init__.py`
+- `feed/tests/test_feed.py`
+- `feed/tests/test_models.py`
+- `ai/tests/__init__.py`
+- `ai/tests/test_views.py`
+
+**Без изменений:**
+- `users/tests.py` (оставляем как есть, для обратной совместимости с `python manage.py test`).
 
 ---
 
 ## Ключевые принципы реализации
 
-- **Не вводить новые state-контейнеры поверх zustand-стора** — для data-кеша это TanStack Query, для UI-стейта — локальный `useState` в фиче, для auth/theme — zustand как есть.
-- **MSW не трогаем.** `useToggleLike` будет вызывать 404 в моках — обработаем через `retry: false` и `onError` с rollback оптимистичной мутации. В prod-режиме бекенд будет.
-- **WS и Query-cache**: `useEffect` слушает `useWebSocket` и через `queryClient.setQueryData(keys.feed.list(), ...)` мерджит новое. Source of truth остаётся query-cache, а не локальный `useState`.
-- **Шорткаты не должны ломать формы** — `useHotkeys` фильтрует `<input>/<textarea>/[contenteditable]`.
-- **Тема применяется до рендера** — `useThemeStore.getState().apply()` в начале `bootstrap` (до `createRoot.render`), плюс подписка на стор в `useEffect` для runtime-переключений.
-- **Hydration flash**: zustand `persist.rehydrate()` возвращает Promise; в `main.tsx` await'им перед `createRoot.render`. Это убирает «flash of guest» при reload страницы с активной сессией.
-- **Lint/build должны быть зелёными** — `noUnusedLocals/Parameters`, `verbatimModuleSyntax` (используем `import type` где нужно), `erasableSyntaxOnly` (никаких enum/namespace).
+- **Co-located на фронте** — `*.test.tsx` рядом с компонентом, импорты короткие, удаление = удаление теста.
+- **MSW в node-окружении** — `msw/node` уже входит в `msw@^2`. Хендлеры переиспользуем из `src/shared/api/mocks/handlers.ts` (если они там), иначе — пишем test-specific handlers в `e2e/*.spec.ts` через `page.route()`.
+- **Backend — pytest-django** + `--reuse-db` для скорости, фикстуры через factory_boy. Throttling в тестах отключаем (`@override_settings(REST_FRAMEWORK={...DEFAULT_THROTTLE_CLASSES: ()})`) — иначе 1000/day быстро кончится.
+- **Не трогаем бэк-логику** — только добавляем тесты, никаких фиксов, кроме случаев когда `users/tests.py` дублируется с новыми (его не удаляем, новые — в `users/tests/test_auth.py`).
+- **WebSocket** — `channels.testing.WebsocketCommunicator`, JWT-токен передаётся через `scope['query_string'] = b'token=...'` (как на фронте в `useWebSocket`).
+- **Playwright** — три проекта (desktop + два mobile-viewport'а), `responsive.spec.ts` снимает скриншоты и сравнивает с базой — это наш «CSS-чек адаптивности». Без рефакторинга mobile-first (по решению пользователя).
+- **Snapshot'ы Playwright** — только на главных страницах, `maxDiffPixels: 50` (допуск на антиалиасинг). Если сильно разъезжаются — это сигнал на регрессию вёрстки.
+- **Lint/build** фронта должны остаться зелёными; новые ESLint-правила не вводим.
 
 ---
 
 ## Верификация (как проверять)
 
-1. **Билд**: `cd echo/frontend && npm run build` — должен пройти без TS-ошибок.
-2. **Линт**: `npm run lint` — без warning'ов.
-3. **Dev-сервер**: `npm run dev` — открыть `http://localhost:5173`:
-   - **Темы**: тоггл в Navbar меняет `data-theme` на `<html>`, светлая тема — палитра инвертирована, контраст читаем, все компоненты (кнопки, поля, посты, композер) выглядят консистентно.
-   - **PWA**: DevTools → Application → Manifest — Echo, иконка, start_url, theme_color; Lighthouse → PWA — installable.
-   - **Skeleton**: при первой загрузке фида — 4 плейсхолдера, потом реальные посты.
-   - **Error/Loading/Empty**: выключить сеть → перезагрузить → `ErrorState` с retry; залогиниться как `ada/password` — фид наполняется.
-   - **Пагинация**: пока в моках `nextCursor: null` — UI не показывает «load more». После того как мы добавим ещё 30 фиктивных постов в мок (отдельным коммитом, не в этой итерации) — `useInfiniteQuery` подхватит.
-   - **Лайк**: клик по сердцу → счётчик меняется мгновенно, через 200–500 мс мок ответит 404 (т.к. мы не трогали хендлер), query откатит. В консоли — `ApiError`, оптимистичный UI не «залипает».
-   - **401**: очистить `localStorage` token в DevTools, дёрнуть `api.get('/api/users/me')` через консоль — store очистится, редирект на `/login`.
-   - **WS aria-live**: в DevTools Network — мок WS-но нет, поэтому нового поста не будет. Чтобы проверить визуально — добавить временный `setInterval` в `handlers.ts`, отправляющий `post.created` (только для локальной проверки; в этом PR мок не меняем).
-   - **Шорткаты**: `j`/`k` листают посты, фокус-индикатор виден; `n` ставит курсор в `<textarea>`; `?` открывает диалог с подсказками; `Esc` закрывает. В полях ввода шорткаты не работают.
-   - **Share**: кнопка в PostCard → `navigator.share()` (если поддерживается) или копирование в буфер (в консоли — `[Clipboard] ✓`).
-4. **a11y smoke-test**:
-   - DevTools → Lighthouse → Accessibility — оценка не падает ниже предыдущей.
-   - VoiceOver/NVDA (если доступен) — `aria-live="polite"` на новом посте, `aria-label` на кнопке темы и share.
-5. **Smoke на навигацию**: refresh на `/feed` — нет «flash of guest» (если токен есть, композер появляется без мигания).
+1. **Backend:**
+   - `cd echo && pip install -r requirements-dev.txt`
+   - `pytest -v` — все тесты зелёные, выход 0.
+   - `pytest --cov=users --cov=chats --cov=feed --cov=ai` — coverage critical path.
+   - `python manage.py test users` — старый `users/tests.py` тоже зелёный.
+2. **Frontend (unit):**
+   - `cd echo/frontend && npm install`
+   - `npm test` — все Vitest-тесты зелёные.
+   - `npm run test:coverage` — coverage ≥ 60% по `src/shared/**`, `src/store/**`, `src/features/**`.
+   - `npm run build` и `npm run lint` — без ошибок.
+3. **E2E:**
+   - Поднять Django (`python manage.py runserver`) и засеять данные (`python scripts/seed_test_data.py`).
+   - `npm run e2e` — все три проекта (desktop, mobile-pixel, mobile-iphone-se) зелёные.
+   - Скриншоты в `e2e/snapshots/` совпадают с базой.
+4. **Mobile-чек:** на mobile-pixel-project — Playwright `responsive.spec.ts` явно проверяет видимость `tabbar`/скрытие `navbar` и отсутствие горизонтального скролла на LoginPage.
 
 ---
 
 ## Что НЕ делаем в этой итерации (отложено)
 
-- Светлая тема для `Avatar` глифов и неоновых акцентов — если что-то выглядит не идеально, чиним в следующей итерации.
-- Markdown/линкификация в `post.body` (п. 3.4).
-- Edit/Delete постов (п. 3.6).
-- Follow/unfollow (п. 3.7).
-- Сторибук, vitest (п. 2.4, 2.5).
-- A11y deep-аудит (п. 2.7).
-- Виртуализация (п. 2.8) — `useInfiniteQuery` сначала, виртуализация когда постов станет >200.
+- Телефон/SMS-аутентификация (отдельная фича, требует SMS-провайдера).
+- PWA: manifest, service worker, push-уведомления, офлайн.
+- Native-обёртка (Capacitor / React Native).
+- Рефакторинг mobile-first (`min-width` брейкпоинты для контента, touch-оптимизации, адаптация LoginPage под 360px).
+- AI integration-тесты с реальным DeepSeek (только мок).
+- Stress/perf-тесты.
+- Visual regression на ВСЕ страницы (только главные: `/chats`, `/feed`, `/login`).
+- Тесты для `core/upload.py` (валидация файлов) — не critical path.
+- Тесты для `useTheme` (ThemeToggle покрывает достаточно).
+- Тесты для `useHotkeys`/`Cheatsheet` (это UI из старого плана, не в фокусе).
 
 ---
 
 ## Порядок коммитов (для review-пригодности)
 
-1. **chore: add @tanstack/react-query and provider** — только зависимости + `QueryProvider` + подключение в `App.tsx`. Билд зелёный.
-2. **feat(theme): dark/light theme with system preference + toggle in navbar** — store, хук, токены, кнопка, apply до рендера.
-3. **feat(pwa): manifest + favicon + theme-color** — html, manifest, svg.
-4. **feat(ui): Skeleton + ErrorState components, export from shared/ui** — без потребителей.
-5. **feat(api): likePost/unlikePost endpoints + useMe/useUser/useFeed/useCreatePost/useToggleLike queries** — без потребителей страниц.
-6. **refactor(feed): migrate FeedPage to TanStack Query, add pagination + optimistic like + ws aria-live + sentinel** — самая большая замена. Билд + ручная проверка.
-7. **refactor(profile): migrate ProfilePage to TanStack Query + ErrorState + Skeleton**.
-8. **feat(auth): useAuthStatus + 401 handler in client + await hydration in main**.
-9. **feat(ux): share button in PostCard, useHotkeys hook, j/k/n/? cheatsheet**.
-10. **chore: fix lint warnings, verify build**.
+1. **chore(frontend): add vitest + RTL infrastructure** — только конфиги и setup. Один smoke-тест, чтобы доказать, что `npm test` зелёный.
+2. **test(frontend): unit-тесты для shared/lib, shared/api, shared/model, store** — чистые функции, схемы, стор.
+3. **test(frontend): unit-тесты для shared/ui** — Button, Field, Card, Avatar.
+4. **test(frontend): тесты для ProtectedRoute, PublicOnlyRoute, ThemeToggle, TypingIndicator, useWebSocket**.
+5. **test(frontend): тесты для features (auth-by-email, post-card)** — с MSW.
+6. **test(frontend): интеграционные тесты для LoginPage, FeedPage, ProfilePage**.
+7. **chore(backend): add pytest + factory_boy infrastructure** — `requirements-dev.txt`, `pytest.ini`, `conftest.py`, фабрики. Один smoke-тест.
+8. **test(backend): users tests** — auth + serializers + models.
+9. **test(backend): chats tests** — REST + models + websocket.
+10. **test(backend): feed tests** — REST + models.
+11. **test(backend): ai tests** — мок DeepSeek.
+12. **chore(frontend): add Playwright infrastructure** — конфиг, scripts, браузеры через `npx playwright install`.
+13. **e2e(frontend): auth + feed + chats flows** — базовые сценарии на desktop + mobile.
+14. **e2e(frontend): responsive CSS checks + snapshots** — финальный коммит с визуальной верификацией.
 
-Каждый коммит — `npm run lint && npm run build` зелёные, `git status` чистый только в пределах темы коммита.
+Каждый коммит — все три уровня тестов остаются зелёными (`npm test && pytest && npm run e2e` в dry-run).
